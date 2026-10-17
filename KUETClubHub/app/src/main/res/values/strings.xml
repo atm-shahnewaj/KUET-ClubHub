@@ -8,7 +8,6 @@
     <string name="title_my_clubs">My clubs</string>
     <string name="title_pending">Pending</string>
     <string name="title_profile">Profile</string>
-    <string name="events_coming_soon">The event calendar, registration and waiting lists arrive in Week 2.</string>
 
     <!-- Login -->
     <string name="login_title">Welcome back</string>
@@ -90,4 +89,115 @@
 
     <!-- Misc -->
     <string name="msg_profile_load_failed">Could not load your profile. Please log in again.</string>
+
+    <!-- Branding / appearance -->
+    <string name="tagline">Clubs · Competitions · Campus Events</string>
+    <string name="logo_description">KUET logo</string>
+    <string name="greeting_hello">Hello, %1$s</string>
+    <string name="greeting_sub">Find a club that fits you</string>
+    <string name="label_appearance">Appearance</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="action_toggle_theme">Switch light / dark mode</string>
+
+    <!-- Week 2: events -->
+    <string name="title_my_events">My events</string>
+    <string name="title_event">Event</string>
+    <string name="title_new_event">New event</string>
+    <string name="title_edit_event">Edit event</string>
+    <string name="title_participants">Participants</string>
+    <string name="view_list">List</string>
+    <string name="view_calendar">Calendar</string>
+    <string name="hint_search_events">Search events</string>
+    <string name="action_new_event">New event</string>
+    <string name="action_prev_month">Previous month</string>
+    <string name="action_next_month">Next month</string>
+    <string name="events_on_day">Events on %1$s</string>
+
+    <string name="empty_events_all">No events have been posted yet.</string>
+    <string name="empty_events_filtered">No events match your search.</string>
+    <string name="empty_events_day">No events on this day.</string>
+    <string name="empty_events_offline">You are offline and no events are saved yet. Connect to the internet to load them.</string>
+    <string name="empty_my_events">You have not registered for any events yet. Find one in the Events tab.</string>
+    <string name="empty_participants">Nobody has registered yet.</string>
+
+    <string name="seats_left">%1$d of %2$d seats left</string>
+    <string name="seats_full_waitlist">Full · %1$d waiting</string>
+    <string name="event_ended">Event ended</string>
+    <string name="status_registered">Registered</string>
+    <string name="status_waitlisted">Waitlisted</string>
+
+    <!-- Event detail -->
+    <string name="label_details">Details</string>
+    <string name="label_date">Date</string>
+    <string name="label_time">Time</string>
+    <string name="label_venue">Venue</string>
+    <string name="label_seats">Seats</string>
+    <string name="label_waitlist">Waiting</string>
+    <string name="label_competition">Competition</string>
+    <string name="label_deadline">Deadline</string>
+    <string name="label_team_size">Team size</string>
+    <string name="label_prizes">Prizes</string>
+    <string name="label_rules">Rules</string>
+    <string name="no_deadline">No deadline</string>
+    <string name="seats_taken">%1$d of %2$d taken</string>
+    <string name="registration_closed">Registration is closed</string>
+    <string name="action_register_event">Register</string>
+    <string name="action_join_waitlist">Join waiting list</string>
+    <string name="action_cancel_registration">Cancel registration</string>
+    <string name="action_leave_waitlist">Leave waiting list</string>
+    <string name="action_participants">View participants</string>
+    <string name="action_edit_event">Edit event</string>
+    <string name="action_keep">Keep it</string>
+    <string name="action_confirm">Yes, cancel</string>
+    <string name="my_status_registered">You are registered</string>
+    <string name="my_status_waitlisted">On the waiting list · about #%1$d</string>
+    <string name="msg_registered">You are registered. See you there!</string>
+    <string name="msg_waitlisted">The event is full, so you are on the waiting list. If a seat opens, you will be promoted automatically.</string>
+    <string name="msg_cancelled">Cancelled.</string>
+    <string name="msg_event_missing">This event no longer exists.</string>
+    <string name="dialog_cancel_registration_title">Cancel registration?</string>
+    <string name="dialog_cancel_registration_message">Your seat will be given to the next person on the waiting list.</string>
+    <string name="dialog_leave_waitlist_title">Leave the waiting list?</string>
+    <string name="dialog_leave_waitlist_message">You will lose your place in the queue.</string>
+    <string name="participants_summary">%1$d registered · %2$d waiting</string>
+
+    <!-- Event form -->
+    <string name="hint_club">Club</string>
+    <string name="hint_event_title">Event title</string>
+    <string name="hint_event_type">Type</string>
+    <string name="hint_event_date">Date</string>
+    <string name="hint_start_time">Starts</string>
+    <string name="hint_end_time">Ends</string>
+    <string name="hint_venue">Venue</string>
+    <string name="hint_capacity">Seats (capacity)</string>
+    <string name="hint_tags">Tags (comma separated, e.g. robotics, ai)</string>
+    <string name="hint_deadline">Registration deadline</string>
+    <string name="hint_team_min">Team size min</string>
+    <string name="hint_team_max">Team size max</string>
+    <string name="hint_prizes">Prizes</string>
+    <string name="hint_rules">Rules</string>
+    <string name="title_pick_club">Select a club</string>
+    <string name="title_pick_event_type">Select the event type</string>
+    <string name="title_pick_date">Event date</string>
+    <string name="title_pick_deadline">Registration deadline</string>
+    <string name="title_pick_start">Start time</string>
+    <string name="title_pick_end">End time</string>
+    <string name="msg_no_clubs_for_events">You need an approved club before you can create events.</string>
+    <string name="msg_event_created">Event created.</string>
+    <string name="msg_event_updated">Event updated.</string>
+    <string name="error_club_required">Select a club</string>
+    <string name="error_event_title_short">Title needs at least 3 characters</string>
+    <string name="error_event_type_required">Select a type</string>
+    <string name="error_date_required">Pick a date</string>
+    <string name="error_time_required">Pick a time</string>
+    <string name="error_end_before_start">End must be after the start</string>
+    <string name="error_venue_required">Enter a venue</string>
+    <string name="error_capacity_invalid">Enter a number from 1 to 5000</string>
+    <string name="error_capacity_below_registered">%1$d people are already registered, so seats cannot go below that</string>
+    <string name="error_event_in_past">The event must start in the future</string>
+    <string name="error_deadline_required">Pick a deadline for the competition</string>
+    <string name="error_deadline_after_start">The deadline must be before the event starts</string>
+    <string name="error_team_size_invalid">Enter a number from 1 to 20 (max not below min)</string>
 </resources>

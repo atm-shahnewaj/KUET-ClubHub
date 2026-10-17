@@ -1,12 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Widget.ClubHub.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+    </style>
+
+    <style name="Widget.ClubHub.Button" parent="Widget.Material3.Button">
+        <item name="cornerRadius">16dp</item>
+    </style>
+
     <style name="Base.Theme.ClubHub" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">#4DB6AC</item>
-        <item name="colorOnPrimary">#003731</item>
-        <item name="colorPrimaryContainer">#00504A</item>
-        <item name="colorOnPrimaryContainer">#B2DFDB</item>
-        <item name="colorSecondary">#B1CCC7</item>
-        <item name="colorSecondaryContainer">#334B47</item>
-        <item name="colorOnSecondaryContainer">#CCE8E3</item>
+        <item name="textInputStyle">@style/Widget.ClubHub.TextInputLayout</item>
+        <item name="materialButtonStyle">@style/Widget.ClubHub.Button</item>
+
+        <item name="colorPrimary">#6FDC95</item>
+        <item name="colorOnPrimary">#00391A</item>
+        <item name="colorPrimaryContainer">#00522A</item>
+        <item name="colorOnPrimaryContainer">#C5F0D3</item>
+        <item name="colorPrimaryInverse">#00873F</item>
+
+        <item name="colorSecondary">#B3CCBA</item>
+        <item name="colorOnSecondary">#1E3527</item>
+        <item name="colorSecondaryContainer">#00522A</item>
+        <item name="colorOnSecondaryContainer">#C5F0D3</item>
+
+        <item name="colorTertiary">#FFB3AD</item>
+        <item name="colorOnTertiary">#68000B</item>
+        <item name="colorTertiaryContainer">#93000F</item>
+        <item name="colorOnTertiaryContainer">#FFDAD6</item>
+
+        <item name="android:colorBackground">#0F1511</item>
+        <item name="colorOnBackground">#DEE4DD</item>
+        <item name="colorSurface">#0F1511</item>
+        <item name="colorOnSurface">#DEE4DD</item>
+        <item name="colorSurfaceVariant">#404942</item>
+        <item name="colorOnSurfaceVariant">#BFC9C0</item>
+        <item name="colorSurfaceContainerLowest">#0A0F0C</item>
+        <item name="colorSurfaceContainerLow">#171D19</item>
+        <item name="colorSurfaceContainer">#1B211D</item>
+        <item name="colorSurfaceContainerHigh">#262C27</item>
+        <item name="colorSurfaceContainerHighest">#303632</item>
+        <item name="colorOutline">#8A938B</item>
+        <item name="colorOutlineVariant">#404942</item>
     </style>
 </resources>

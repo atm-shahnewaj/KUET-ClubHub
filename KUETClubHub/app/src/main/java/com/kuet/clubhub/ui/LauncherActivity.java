@@ -25,6 +25,7 @@ public class LauncherActivity extends BaseActivity {
         ActivityLauncherBinding binding = ActivityLauncherBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         applyInsets(binding.getRoot());
+        useWhiteStatusBarIcons();
         route();
     }
 

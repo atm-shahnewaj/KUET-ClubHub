@@ -29,7 +29,8 @@ public class RegisterActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityRegisterBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        applyInsets(binding.getRoot());
+        applyInsetsWithHeader(binding.getRoot(), binding.header);
+        useWhiteStatusBarIcons();
 
         View.OnClickListener pickYear = v -> PickerUtil.showChoice(
                 this,
@@ -52,7 +53,8 @@ public class RegisterActivity extends BaseActivity {
         String email = textOf(binding.etEmail);
         String password = rawTextOf(binding.etPassword);
         String confirm = rawTextOf(binding.etConfirmPassword);
-        Role role = binding.rbOrganizer.isChecked() ? Role.ORGANIZER : Role.STUDENT;
+        Role role = binding.toggleRole.getCheckedButtonId() == R.id.btn_role_organizer
+                ? Role.ORGANIZER : Role.STUDENT;
 
         binding.tilName.setError(null);
         binding.tilStudentId.setError(null);

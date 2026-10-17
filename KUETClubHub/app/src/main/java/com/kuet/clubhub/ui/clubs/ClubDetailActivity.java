@@ -36,7 +36,8 @@ public class ClubDetailActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityClubDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        applyInsets(binding.getRoot());
+        applyInsetsWithHeader(binding.getRoot(), binding.header);
+        useWhiteStatusBarIcons();
 
         clubId = getIntent().getStringExtra(EXTRA_CLUB_ID);
         profile = new SessionManager(this).getProfile();

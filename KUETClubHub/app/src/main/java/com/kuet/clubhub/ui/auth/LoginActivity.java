@@ -25,7 +25,8 @@ public class LoginActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        applyInsets(binding.getRoot());
+        applyInsetsWithHeader(binding.getRoot(), binding.header);
+        useWhiteStatusBarIcons();
 
         binding.btnLogin.setOnClickListener(v -> attemptLogin());
         binding.btnForgot.setOnClickListener(v -> sendReset());

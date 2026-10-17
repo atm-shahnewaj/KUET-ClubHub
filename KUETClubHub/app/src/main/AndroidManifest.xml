@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
+        android:name=".ClubHubApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -34,6 +35,16 @@
             android:exported="false" />
         <activity
             android:name=".ui.clubs.ClubDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.events.EventDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.events.EventEditActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.events.EventParticipantsActivity"
             android:exported="false" />
         <activity
             android:name=".ui.clubs.ClubEditActivity"

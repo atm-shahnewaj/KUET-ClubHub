@@ -5,6 +5,10 @@
         android:icon="@drawable/ic_clubs"
         android:title="@string/title_clubs" />
     <item
+        android:id="@+id/nav_events"
+        android:icon="@drawable/ic_events"
+        android:title="@string/title_events" />
+    <item
         android:id="@+id/nav_pending"
         android:icon="@drawable/ic_pending"
         android:title="@string/title_pending" />

@@ -39,7 +39,8 @@ public class ClubEditActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityClubEditBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        applyInsets(binding.getRoot());
+        applyInsetsWithHeader(binding.getRoot(), binding.header);
+        useWhiteStatusBarIcons();
 
         profile = new SessionManager(this).getProfile();
         if (profile == null || profile.getRoleEnum() == Role.STUDENT) {

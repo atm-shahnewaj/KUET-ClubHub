@@ -98,10 +98,17 @@ public class ClubListFragment extends Fragment {
                 startActivity(new Intent(requireContext(), ClubEditActivity.class)));
 
         if (mode == MODE_ALL) {
+            String fullName = profile == null || profile.getName() == null
+                    ? "" : profile.getName().trim();
+            String firstName = fullName.isEmpty() ? "" : fullName.split("\\s+")[0];
+            binding.tvGreeting.setText(firstName.isEmpty()
+                    ? getString(R.string.title_clubs)
+                    : getString(R.string.greeting_hello, firstName));
             setupSearchAndChips();
             // Room is the single source of truth for the directory.
             repository.observeCachedClubs().observe(getViewLifecycleOwner(), this::onCacheChanged);
         } else {
+            binding.greetingBlock.setVisibility(View.GONE);
             binding.tilSearch.setVisibility(View.GONE);
             binding.chipScroll.setVisibility(View.GONE);
         }
@@ -254,7 +261,7 @@ public class ClubListFragment extends Fragment {
         boolean empty = filtered.isEmpty();
         boolean showSpinner = empty && allClubs.isEmpty() && !loaded;
         binding.progress.setVisibility(showSpinner ? View.VISIBLE : View.GONE);
-        binding.emptyState.setVisibility(empty && !showSpinner ? View.VISIBLE : View.GONE);
+        binding.emptyContainer.setVisibility(empty && !showSpinner ? View.VISIBLE : View.GONE);
         binding.emptyState.setText(emptyMessage());
     }
 

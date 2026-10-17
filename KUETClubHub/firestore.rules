@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// KUET ClubHub - Week 1 rules (users + clubs).
+// KUET ClubHub - rules for Week 1 + Week 2 (users, clubs, events, registrations, waiting list).
 // Paste into Firebase Console -> Firestore Database -> Rules -> Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -21,6 +21,14 @@ service cloud.firestore {
       return signedIn() && myUser().role == 'organizer';
     }
 
+    function clubPath(clubId) {
+      return /databases/$(database)/documents/clubs/$(clubId);
+    }
+
+    function eventPath(eventId) {
+      return /databases/$(database)/documents/events/$(eventId);
+    }
+
     // ---- users/{uid}
     match /users/{uid} {
       // Any signed-in user may read profiles (needed later for team matching).
@@ -39,6 +47,20 @@ service cloud.firestore {
                     && request.resource.data.points == resource.data.points;
 
       allow delete: if signedIn() && request.auth.uid == uid;
+
+      // My registrations: a copy of each registration with a summary of the event,
+      // so "My events" works with a single query.
+      match /registrations/{eventId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn() && request.auth.uid == uid;
+        allow update: if signedIn() && (
+              request.auth.uid == uid
+              // Someone who cancelled a seat promotes the next person on the waiting list.
+              || (resource.data.status == 'waitlisted'
+                  && request.resource.data.status == 'registered'
+                  && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])));
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
     }
 
     // ---- clubs/{clubId}
@@ -60,6 +82,95 @@ service cloud.firestore {
                         && request.resource.data.organizers == resource.data.organizers);
 
       allow delete: if isAdmin();
+    }
+
+    // ---- events/{eventId}
+    match /events/{eventId} {
+      allow read: if signedIn();
+
+      // Admins, or organizers of an approved club (the event copies the club's organizer list).
+      allow create: if signedIn()
+                    && (isAdmin()
+                        || (isOrganizer()
+                            && request.auth.uid in get(clubPath(request.resource.data.clubId)).data.organizers
+                            && get(clubPath(request.resource.data.clubId)).data.approved == true
+                            && request.resource.data.organizers == get(clubPath(request.resource.data.clubId)).data.organizers))
+                    && request.resource.data.capacity >= 1
+                    && request.resource.data.registeredCount == 0
+                    && request.resource.data.waitlistCount == 0
+                    && request.resource.data.waitHead == 0
+                    && request.resource.data.waitTail == 0;
+
+      // Managers edit anything. Everybody else may only move the seat / waiting-list counters,
+      // and only within sane bounds (registrations and cancellations do this in a transaction).
+      allow update: if signedIn()
+                    && (isAdmin()
+                        || request.auth.uid in resource.data.organizers
+                        || (request.resource.data.diff(resource.data).affectedKeys()
+                              .hasOnly(['registeredCount', 'waitlistCount', 'waitHead', 'waitTail'])
+                            && request.resource.data.registeredCount >= 0
+                            && request.resource.data.registeredCount <= request.resource.data.capacity
+                            && request.resource.data.waitlistCount >= 0
+                            && request.resource.data.waitHead <= request.resource.data.waitTail));
+
+      allow delete: if signedIn()
+                    && (isAdmin() || request.auth.uid in resource.data.organizers);
+
+      // ---- events/{eventId}/registrations/{uid}
+      match /registrations/{uid} {
+        function ev() {
+          return get(eventPath(eventId)).data;
+        }
+        function evAfter() {
+          return getAfter(eventPath(eventId)).data;
+        }
+        // Taking a seat must raise the event's seat counter by exactly one, never past capacity.
+        function takesSeat() {
+          return request.resource.data.status == 'registered'
+                 && evAfter().registeredCount == ev().registeredCount + 1
+                 && evAfter().registeredCount <= ev().capacity;
+        }
+        // Joining the waiting list is only possible when the event is full, at the next position.
+        function joinsWaitlist() {
+          return request.resource.data.status == 'waitlisted'
+                 && ev().registeredCount >= ev().capacity
+                 && request.resource.data.waitSeq == ev().waitTail
+                 && evAfter().waitTail == ev().waitTail + 1;
+        }
+
+        allow read: if signedIn()
+                    && (request.auth.uid == uid
+                        || isAdmin()
+                        || request.auth.uid in ev().organizers);
+
+        allow create: if signedIn()
+                      && request.auth.uid == uid
+                      && request.resource.data.uid == uid
+                      && (takesSeat() || joinsWaitlist());
+
+        allow update: if signedIn()
+                      && (
+                        // my own registration
+                        (request.auth.uid == uid
+                         && request.resource.data.uid == uid
+                         && ((resource.data.status == 'cancelled' && (takesSeat() || joinsWaitlist()))
+                             || (resource.data.status in ['registered', 'waitlisted']
+                                 && request.resource.data.status == 'cancelled')))
+                        // someone else's seat freed up: promote from the waiting list
+                        || (request.auth.uid != uid
+                            && resource.data.status == 'waitlisted'
+                            && request.resource.data.status == 'registered'));
+      }
+
+      // ---- events/{eventId}/waitlist/{seq}: queue positions, one small document per place
+      match /waitlist/{seq} {
+        allow read: if signedIn();
+        allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+        allow delete: if signedIn()
+                      && (resource.data.uid == request.auth.uid
+                          || (existsAfter(/databases/$(database)/documents/events/$(eventId)/registrations/$(resource.data.uid))
+                              && getAfter(/databases/$(database)/documents/events/$(eventId)/registrations/$(resource.data.uid)).data.status == 'registered'));
+      }
     }
   }
 }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="header_start">#0B7A40</color>
+    <color name="header_end">#04361B</color>
+    <color name="type_workshop">#4CD08A</color>
+    <color name="type_seminar">#F2C94C</color>
+    <color name="type_competition">#FF6B6B</color>
+    <color name="type_other">#9DB0A8</color>
+</resources>

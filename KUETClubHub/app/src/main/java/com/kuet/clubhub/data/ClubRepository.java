@@ -161,6 +161,28 @@ public class ClubRepository {
         });
     }
 
+    /** Approved clubs the person may create events for (admins: all approved clubs). */
+    public void loadClubsForEvents(boolean isAdmin, String uid, Callback<List<Club>> cb) {
+        Query query = isAdmin
+                ? db.collection(CLUBS).whereEqualTo("approved", true)
+                : db.collection(CLUBS).whereArrayContains("organizers", uid);
+        query.get().addOnCompleteListener(task -> {
+            if (!task.isSuccessful() || task.getResult() == null) {
+                cb.onError(describe(task.getException()));
+                return;
+            }
+            List<Club> list = new ArrayList<>();
+            for (DocumentSnapshot d : task.getResult().getDocuments()) {
+                Club c = toClub(d);
+                if (c != null && c.isApproved()) {
+                    list.add(c);
+                }
+            }
+            Collections.sort(list, (a, b) -> safe(a.getName()).compareToIgnoreCase(safe(b.getName())));
+            cb.onSuccess(list);
+        });
+    }
+
     // ---------------------------------------------------------------- writes
 
     /** Admins create approved clubs; organizers create clubs that wait for approval. */

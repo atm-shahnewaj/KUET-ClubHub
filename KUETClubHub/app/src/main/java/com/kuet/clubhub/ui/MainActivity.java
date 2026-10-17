@@ -17,12 +17,13 @@ import com.kuet.clubhub.databinding.ActivityMainBinding;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.ui.clubs.ClubListFragment;
+import com.kuet.clubhub.ui.events.EventsFragment;
+import com.kuet.clubhub.ui.events.MyEventsFragment;
 import com.kuet.clubhub.ui.profile.ProfileFragment;
+import com.kuet.clubhub.util.ThemeManager;
 
 /** Hosts the bottom navigation. The tabs shown depend on the signed-in user's role. */
 public class MainActivity extends BaseActivity {
-
-    private static final String STATE_TITLE = "state_title";
 
     private ActivityMainBinding binding;
     private SessionManager session;
@@ -42,7 +43,17 @@ public class MainActivity extends BaseActivity {
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        applyInsets(binding.getRoot());
+        applyInsetsWithHeader(binding.getRoot(), binding.header);
+        useWhiteStatusBarIcons();
+
+        binding.toolbar.inflateMenu(R.menu.main_toolbar);
+        binding.toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.action_toggle_theme) {
+                ThemeManager.toggle(this);
+                return true;
+            }
+            return false;
+        });
 
         binding.bottomNav.inflateMenu(menuFor(profile.getRoleEnum()));
         binding.bottomNav.setOnItemSelectedListener(item -> {
@@ -52,20 +63,14 @@ public class MainActivity extends BaseActivity {
         binding.bottomNav.setOnItemReselectedListener(item -> { /* keep the current screen */ });
 
         if (savedInstanceState == null) {
-            binding.bottomNav.setSelectedItemId(R.id.nav_clubs);
-        } else {
-            binding.toolbar.setTitle(savedInstanceState.getString(STATE_TITLE, ""));
+            // The first tab is already selected after inflating the menu, so setSelectedItemId()
+            // would only fire the "reselected" listener and nothing would be shown. Show it directly.
+            MenuItem first = binding.bottomNav.getMenu().findItem(R.id.nav_clubs);
+            first.setChecked(true);
+            showTab(first);
         }
 
         refreshRoleFromServer();
-    }
-
-    @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        if (binding != null && binding.toolbar.getTitle() != null) {
-            outState.putString(STATE_TITLE, binding.toolbar.getTitle().toString());
-        }
     }
 
     private int menuFor(Role role) {
@@ -85,8 +90,9 @@ public class MainActivity extends BaseActivity {
         if (id == R.id.nav_clubs) {
             fragment = ClubListFragment.newInstance(ClubListFragment.MODE_ALL);
         } else if (id == R.id.nav_events) {
-            fragment = PlaceholderFragment.newInstance(
-                    getString(R.string.title_events), getString(R.string.events_coming_soon));
+            fragment = new EventsFragment();
+        } else if (id == R.id.nav_my_events) {
+            fragment = new MyEventsFragment();
         } else if (id == R.id.nav_my_clubs) {
             fragment = ClubListFragment.newInstance(ClubListFragment.MODE_MINE);
         } else if (id == R.id.nav_pending) {
@@ -94,7 +100,6 @@ public class MainActivity extends BaseActivity {
         } else {
             fragment = new ProfileFragment();
         }
-        binding.toolbar.setTitle(item.getTitle());
         getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true)
                 .replace(R.id.fragment_container, fragment)

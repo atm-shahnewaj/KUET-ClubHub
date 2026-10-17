@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 /**
@@ -72,6 +73,33 @@ public abstract class BaseActivity extends AppCompatActivity {
             v.setPadding(insets.left, insets.top, insets.right, insets.bottom);
             return WindowInsetsCompat.CONSUMED;
         });
+    }
+
+    /**
+     * Like applyInsets, but lets a coloured header run under the status bar: the root gets the
+     * side/bottom/keyboard padding and the header gets extra top padding for the status bar.
+     */
+    protected void applyInsetsWithHeader(@NonNull View root, @NonNull View header) {
+        final int headerBaseTop = header.getPaddingTop();
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars()
+                            | WindowInsetsCompat.Type.displayCutout());
+            Insets all = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars()
+                            | WindowInsetsCompat.Type.displayCutout()
+                            | WindowInsetsCompat.Type.ime());
+            v.setPadding(all.left, 0, all.right, all.bottom);
+            header.setPadding(header.getPaddingLeft(), headerBaseTop + bars.top,
+                    header.getPaddingRight(), header.getPaddingBottom());
+            return WindowInsetsCompat.CONSUMED;
+        });
+    }
+
+    /** Status-bar icons in white, for screens whose top area is the green header. */
+    protected void useWhiteStatusBarIcons() {
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(false);
     }
 
     /** Starts the target as a fresh task (used after login / logout). */

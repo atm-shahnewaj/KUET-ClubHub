@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#00796B</color>
+    <!-- Palette taken from the KUET logo -->
+    <color name="kuet_green">#00A651</color>
+    <color name="kuet_yellow">#FFF200</color>
+    <color name="kuet_red">#ED1C24</color>
+    <color name="white">#FFFFFF</color>
+
+    <!-- Header gradient (changes in dark mode) -->
+    <color name="header_start">#00A651</color>
+    <color name="header_end">#006B32</color>
+
+    <!-- Event type colours (calendar dots, pills) -->
+    <color name="type_workshop">#00A651</color>
+    <color name="type_seminar">#D98E00</color>
+    <color name="type_competition">#ED1C24</color>
+    <color name="type_other">#6E7F78</color>
+
+    <color name="ic_launcher_background">#FFFFFF</color>
 </resources>
