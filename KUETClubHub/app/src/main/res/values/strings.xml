@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KUET ClubHub</string>
+
+    <!-- Navigation titles -->
+    <string name="title_clubs">Clubs</string>
+    <string name="title_events">Events</string>
+    <string name="title_my_clubs">My clubs</string>
+    <string name="title_pending">Pending</string>
+    <string name="title_profile">Profile</string>
+    <string name="events_coming_soon">The event calendar, registration and waiting lists arrive in Week 2.</string>
+
+    <!-- Login -->
+    <string name="login_title">Welcome back</string>
+    <string name="login_subtitle">Log in to discover clubs and campus events</string>
+    <string name="hint_email">Email</string>
+    <string name="hint_password">Password</string>
+    <string name="action_login">Log in</string>
+    <string name="action_forgot_password">Forgot password?</string>
+    <string name="action_create_account">New here? Create an account</string>
+    <string name="msg_reset_sent">If an account exists for that email, a reset link is on its way.</string>
+
+    <!-- Register -->
+    <string name="register_title">Create your account</string>
+    <string name="register_subtitle">Join KUET ClubHub to follow clubs and events</string>
+    <string name="hint_name">Full name</string>
+    <string name="hint_student_id">Student ID</string>
+    <string name="hint_department">Department (e.g. CSE)</string>
+    <string name="hint_year">Year</string>
+    <string name="hint_confirm_password">Confirm password</string>
+    <string name="label_role">I am a…</string>
+    <string name="role_student">Student</string>
+    <string name="role_organizer">Club organizer</string>
+    <string name="action_register">Create account</string>
+    <string name="action_have_account">Already have an account? Log in</string>
+    <string name="title_pick_year">Select your year</string>
+
+    <!-- Validation -->
+    <string name="error_name_required">Enter your full name</string>
+    <string name="error_student_id_required">Enter your student ID</string>
+    <string name="error_department_required">Enter your department</string>
+    <string name="error_year_required">Select your year</string>
+    <string name="error_email_invalid">Enter a valid email address</string>
+    <string name="error_password_required">Enter your password</string>
+    <string name="error_password_short">Use at least 6 characters</string>
+    <string name="error_password_mismatch">Passwords do not match</string>
+    <string name="error_club_name_short">Club name needs at least 3 characters</string>
+    <string name="error_category_required">Select a category</string>
+    <string name="error_description_required">Add a short description</string>
+
+    <!-- Clubs -->
+    <string name="hint_search_clubs">Search clubs</string>
+    <string name="chip_all">All</string>
+    <string name="action_new_club">New club</string>
+    <plurals name="member_count">
+        <item quantity="one">%d member</item>
+        <item quantity="other">%d members</item>
+    </plurals>
+    <string name="badge_pending_approval">Pending approval</string>
+    <string name="empty_clubs_all">No clubs have been published yet.</string>
+    <string name="empty_clubs_offline">You are offline and no clubs are saved yet. Connect to the internet to load them.</string>
+    <string name="empty_clubs_mine">You have not created any clubs yet. Tap “New club” to submit one for approval.</string>
+    <string name="empty_clubs_pending">No clubs are waiting for approval.</string>
+    <string name="empty_clubs_filtered">No clubs match your search.</string>
+
+    <!-- Club detail / edit -->
+    <string name="title_club">Club</string>
+    <string name="title_new_club">New club</string>
+    <string name="title_edit_club">Edit club</string>
+    <string name="label_about">About</string>
+    <string name="hint_club_name">Club name</string>
+    <string name="hint_category">Category</string>
+    <string name="hint_description">Description</string>
+    <string name="title_pick_category">Select a category</string>
+    <string name="action_save">Save</string>
+    <string name="action_approve_club">Approve club</string>
+    <string name="action_edit_club">Edit club</string>
+    <string name="msg_club_approved">Club approved and now visible to everyone.</string>
+    <string name="msg_club_submitted">Club submitted. An admin must approve it before it appears in the directory.</string>
+    <string name="msg_club_created">Club created.</string>
+    <string name="msg_club_updated">Club updated.</string>
+    <string name="msg_club_missing">This club no longer exists.</string>
+
+    <!-- Profile -->
+    <string name="label_email">Email</string>
+    <string name="label_student_id">Student ID</string>
+    <string name="label_department">Department</string>
+    <string name="label_year">Year</string>
+    <string name="action_logout">Log out</string>
+
+    <!-- Misc -->
+    <string name="msg_profile_load_failed">Could not load your profile. Please log in again.</string>
+</resources>

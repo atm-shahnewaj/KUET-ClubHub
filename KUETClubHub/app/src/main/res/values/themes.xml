@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Base.Theme.ClubHub" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#00796B</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#B2DFDB</item>
+        <item name="colorOnPrimaryContainer">#00201C</item>
+        <item name="colorSecondary">#4A6360</item>
+        <item name="colorSecondaryContainer">#CCE8E3</item>
+        <item name="colorOnSecondaryContainer">#05201D</item>
+    </style>
+
+    <style name="Theme.ClubHub" parent="Base.Theme.ClubHub" />
+</resources>

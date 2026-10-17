@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// KUET ClubHub - Week 1 rules (users + clubs).
+// Paste into Firebase Console -> Firestore Database -> Rules -> Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return signedIn() && myUser().role == 'admin';
+    }
+
+    function isOrganizer() {
+      return signedIn() && myUser().role == 'organizer';
+    }
+
+    // ---- users/{uid}
+    match /users/{uid} {
+      // Any signed-in user may read profiles (needed later for team matching).
+      allow read: if signedIn();
+
+      // Self sign-up: only as student or organizer; 'admin' can only be set in the console.
+      allow create: if signedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.role in ['student', 'organizer']
+                    && request.resource.data.points == 0;
+
+      // Users edit their own profile but can never change their role or points.
+      allow update: if signedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.role == resource.data.role
+                    && request.resource.data.points == resource.data.points;
+
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---- clubs/{clubId}
+    match /clubs/{clubId} {
+      allow read: if signedIn();
+
+      // Admins create approved clubs; organizers create clubs that start unapproved.
+      allow create: if isAdmin()
+                    || (isOrganizer()
+                        && request.resource.data.approved == false
+                        && request.auth.uid in request.resource.data.organizers);
+
+      // Admins can change anything; an organizer can edit only their own club
+      // and cannot approve it or change who runs it.
+      allow update: if isAdmin()
+                    || (isOrganizer()
+                        && request.auth.uid in resource.data.organizers
+                        && request.resource.data.approved == resource.data.approved
+                        && request.resource.data.organizers == resource.data.organizers);
+
+      allow delete: if isAdmin();
+    }
+  }
+}
