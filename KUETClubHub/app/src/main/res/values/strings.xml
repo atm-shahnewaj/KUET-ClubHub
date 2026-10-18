@@ -200,4 +200,65 @@
     <string name="error_deadline_required">Pick a deadline for the competition</string>
     <string name="error_deadline_after_start">The deadline must be before the event starts</string>
     <string name="error_team_size_invalid">Enter a number from 1 to 20 (max not below min)</string>
+
+    <!-- Week 3: profile, reminders, alerts, clash check -->
+    <string name="title_edit_profile">Edit profile</string>
+    <string name="title_alerts">Alerts</string>
+    <string name="label_interests">Interests</string>
+    <string name="label_skills">Skills</string>
+    <string name="label_notifications">Notifications</string>
+    <string name="interests_help">Pick topics you care about. You will get an alert when a new event is tagged with one of them.</string>
+    <string name="hint_other_interests">Other interests (comma separated)</string>
+    <string name="hint_skills">Skills (comma separated, e.g. java, arduino)</string>
+    <string name="no_interests">No interests yet. Add some to get alerts about matching events.</string>
+    <string name="no_skills">No skills added yet.</string>
+    <string name="action_edit_profile">Edit profile</string>
+    <string name="msg_profile_saved">Profile saved.</string>
+
+    <string name="action_alerts">Alerts</string>
+    <string name="action_clear_alerts">Clear all</string>
+    <string name="action_view">View</string>
+    <string name="action_allow">Allow</string>
+    <string name="action_not_now">Not now</string>
+    <string name="empty_alerts">No alerts yet. When a new event matches your interests, it shows up here.</string>
+    <string name="snackbar_new_alert">New event for you: %1$s</string>
+
+    <string name="switch_reminders">Event reminders (1 day and 1 hour before)</string>
+    <string name="switch_alerts">Alerts for events that match my interests</string>
+    <string name="action_test_reminder">Send a test reminder (in 10 seconds)</string>
+    <string name="action_test_alert">Send a test interest alert</string>
+    <string name="action_battery_settings">Battery settings (keep alerts reliable)</string>
+    <string name="notifications_off_hint">Notifications are turned off for ClubHub, so reminders and alerts cannot show. Tap here to turn them on.</string>
+    <string name="msg_test_reminder_scheduled">A test reminder will arrive in about 10 seconds. You can close the app while you wait.</string>
+    <string name="msg_test_alert_sent">Test alert sent. Check your notifications and the bell.</string>
+    <string name="msg_no_battery_settings">Could not open the battery settings on this phone.</string>
+    <string name="dialog_notif_title">Allow notifications?</string>
+    <string name="dialog_notif_message">ClubHub uses notifications to remind you before events you registered for, and to tell you about new events that match your interests.</string>
+
+    <string name="channel_reminders">Event reminders</string>
+    <string name="channel_reminders_desc">Reminders before events you registered for</string>
+    <string name="channel_alerts">Interest alerts</string>
+    <string name="channel_alerts_desc">New events that match your interests</string>
+    <string name="channel_watcher">Background watcher</string>
+    <string name="channel_watcher_desc">Shown while ClubHub watches for events that match your interests</string>
+    <string name="watcher_title">ClubHub is watching for events you may like</string>
+    <string name="watcher_text">Turn off interest alerts in Profile to stop this.</string>
+
+    <string name="reminder_day_title">Tomorrow: %1$s</string>
+    <string name="reminder_day_text">Starts tomorrow at %1$s</string>
+    <string name="reminder_hour_title">Starting in 1 hour: %1$s</string>
+    <string name="reminder_hour_text">Starts at %1$s</string>
+    <string name="test_reminder_title">Test reminder</string>
+    <string name="test_reminder_text">This is how event reminders will look. They appear even if the app is closed.</string>
+
+    <string name="alert_title">New event: %1$s</string>
+    <string name="alert_message">%1$s · %2$s\nMatches your interests: %3$s</string>
+    <string name="test_alert_event">Sample robotics workshop</string>
+    <string name="test_alert_message">This is a test. A real alert appears when a new event carries one of your interest tags.</string>
+
+    <string name="clash_warning">Heads up: this overlaps with \"%1$s\" (%2$s), which you are already registered for.</string>
+    <string name="dialog_clash_title">Schedule clash</string>
+    <string name="dialog_clash_message">This event overlaps with \"%1$s\", which you are registered for. Register anyway?</string>
+    <string name="action_register_anyway">Register anyway</string>
+    <string name="action_back_out">Go back</string>
 </resources>

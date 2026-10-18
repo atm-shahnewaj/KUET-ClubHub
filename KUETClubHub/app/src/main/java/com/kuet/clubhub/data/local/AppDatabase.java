@@ -6,7 +6,8 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
-@Database(entities = {ClubEntity.class, EventEntity.class}, version = 2, exportSchema = false)
+@Database(entities = {ClubEntity.class, EventEntity.class, ScheduledEventEntity.class,
+        AlertEntity.class}, version = 3, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static volatile AppDatabase instance;
@@ -14,6 +15,10 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract ClubDao clubDao();
 
     public abstract EventDao eventDao();
+
+    public abstract ScheduleDao scheduleDao();
+
+    public abstract AlertDao alertDao();
 
     public static AppDatabase getInstance(Context context) {
         if (instance == null) {

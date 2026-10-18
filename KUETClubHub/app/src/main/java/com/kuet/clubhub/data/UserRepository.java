@@ -15,9 +15,12 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.notify.AlertController;
+import com.kuet.clubhub.util.NotificationPrefs;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /** Authentication + user-profile operations (Firebase Auth and Firestore users/{uid}). */
@@ -131,7 +134,31 @@ public final class UserRepository {
         });
     }
 
+    /** Saves the editable profile fields (never the role or points; the rules forbid that). */
+    public static void updateProfile(String uid, String name, String department, int year,
+                                     List<String> skills, List<String> interests,
+                                     Callback<Void> cb) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", name);
+        data.put("department", department);
+        data.put("year", year);
+        data.put("skills", skills);
+        data.put("interests", interests);
+        FirebaseFirestore.getInstance().collection(USERS).document(uid).update(data)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        cb.onSuccess(null);
+                    } else {
+                        cb.onError(firestoreError(task.getException()));
+                    }
+                });
+    }
+
     public static void logout(Context context) {
+        // Stop everything that belongs to the signed-in student before forgetting them.
+        AlertController.stopAll(context);
+        ScheduleSync.clearAll(context);
+        NotificationPrefs.clearSession(context);
         FirebaseAuth.getInstance().signOut();
         new SessionManager(context).clear();
     }

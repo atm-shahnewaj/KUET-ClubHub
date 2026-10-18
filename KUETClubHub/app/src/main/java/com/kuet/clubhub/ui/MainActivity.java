@@ -1,26 +1,48 @@
 package com.kuet.clubhub.ui;
 
+import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.MenuItem;
 
-import androidx.annotation.NonNull;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.kuet.clubhub.R;
 import com.kuet.clubhub.base.BaseActivity;
 import com.kuet.clubhub.data.Callback;
+import com.kuet.clubhub.data.EventRepository;
+import com.kuet.clubhub.data.ScheduleSync;
 import com.kuet.clubhub.data.SessionManager;
 import com.kuet.clubhub.data.UserRepository;
+import com.kuet.clubhub.data.local.AppDatabase;
 import com.kuet.clubhub.databinding.ActivityMainBinding;
+import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.notify.AlertController;
+import com.kuet.clubhub.notify.AlertProcessor;
+import com.kuet.clubhub.ui.alerts.AlertsActivity;
 import com.kuet.clubhub.ui.clubs.ClubListFragment;
 import com.kuet.clubhub.ui.events.EventsFragment;
 import com.kuet.clubhub.ui.events.MyEventsFragment;
 import com.kuet.clubhub.ui.profile.ProfileFragment;
+import com.kuet.clubhub.util.NotificationPrefs;
 import com.kuet.clubhub.util.ThemeManager;
+
+import java.util.List;
 
 /** Hosts the bottom navigation. The tabs shown depend on the signed-in user's role. */
 public class MainActivity extends BaseActivity {
@@ -28,6 +50,13 @@ public class MainActivity extends BaseActivity {
     private ActivityMainBinding binding;
     private SessionManager session;
     private UserProfile profile;
+
+    private ListenerRegistration registrationsListener;
+    private BroadcastReceiver alertReceiver;
+
+    private final ActivityResultLauncher<String> notificationPermission =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+                    granted -> AlertController.refresh(this));
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -52,8 +81,18 @@ public class MainActivity extends BaseActivity {
                 ThemeManager.toggle(this);
                 return true;
             }
+            if (item.getItemId() == R.id.action_alerts) {
+                startActivity(new Intent(this, AlertsActivity.class));
+                return true;
+            }
             return false;
         });
+
+        // The bell shows a yellow dot while there are unread alerts.
+        final MenuItem alertsItem = binding.toolbar.getMenu().findItem(R.id.action_alerts);
+        AppDatabase.getInstance(this).alertDao().observeUnreadCount().observe(this, count ->
+                alertsItem.setIcon(count != null && count > 0
+                        ? R.drawable.ic_bell_unread : R.drawable.ic_bell));
 
         binding.bottomNav.inflateMenu(menuFor(profile.getRoleEnum()));
         binding.bottomNav.setOnItemSelectedListener(item -> {
@@ -68,9 +107,83 @@ public class MainActivity extends BaseActivity {
             MenuItem first = binding.bottomNav.getMenu().findItem(R.id.nav_clubs);
             first.setChecked(true);
             showTab(first);
+            askForNotificationPermission();
         }
 
+        NotificationPrefs.ensureBaseline(this);
         refreshRoleFromServer();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (binding == null) {
+            return;
+        }
+        // Keep alarms and the stored schedule in step with my registrations.
+        registrationsListener = EventRepository.getInstance(this).listenMyRegistrations(
+                profile.getUid(), new EventRepository.MyRegistrationsListener() {
+                    @Override
+                    public void onChanged(List<MyRegistration> registrations) {
+                        ScheduleSync.sync(MainActivity.this, registrations);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        // Offline: the stored schedule and alarms stay as they were.
+                    }
+                });
+
+        // While the app is open, the alert service's broadcast becomes a snackbar.
+        alertReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String title = intent.getStringExtra(AlertProcessor.EXTRA_TITLE);
+                Snackbar.make(binding.getRoot(),
+                                getString(R.string.snackbar_new_alert, title == null ? "" : title),
+                                Snackbar.LENGTH_LONG)
+                        .setAction(R.string.action_view, v ->
+                                startActivity(new Intent(MainActivity.this, AlertsActivity.class)))
+                        .show();
+            }
+        };
+        ContextCompat.registerReceiver(this, alertReceiver,
+                new IntentFilter(AlertProcessor.ACTION_ALERTS_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED);
+
+        // The app is visible, so the foreground service is allowed to start.
+        AlertController.refresh(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (registrationsListener != null) {
+            registrationsListener.remove();
+            registrationsListener = null;
+        }
+        if (alertReceiver != null) {
+            unregisterReceiver(alertReceiver);
+            alertReceiver = null;
+        }
+    }
+
+    /** Android 13+ needs the person's permission before any notification can show. */
+    private void askForNotificationPermission() {
+        if (Build.VERSION.SDK_INT < 33
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED
+                || NotificationPrefs.askedPermission(this)) {
+            return;
+        }
+        NotificationPrefs.setAskedPermission(this);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_notif_title)
+                .setMessage(R.string.dialog_notif_message)
+                .setNegativeButton(R.string.action_not_now, null)
+                .setPositiveButton(R.string.action_allow, (d, w) ->
+                        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS))
+                .show();
     }
 
     private int menuFor(Role role) {
@@ -118,6 +231,8 @@ public class MainActivity extends BaseActivity {
                 session.save(fresh);
                 if (roleChanged && !isFinishing()) {
                     startClearTask(MainActivity.class);
+                } else {
+                    AlertController.refresh(MainActivity.this);
                 }
             }
 

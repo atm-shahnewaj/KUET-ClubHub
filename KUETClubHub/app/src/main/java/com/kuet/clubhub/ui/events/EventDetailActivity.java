@@ -21,8 +21,11 @@ import com.kuet.clubhub.model.EventType;
 import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.provider.ScheduleClashChecker;
 import com.kuet.clubhub.util.EventTypeStyle;
 import com.kuet.clubhub.util.TimeFormats;
+
+import java.util.Date;
 
 public class EventDetailActivity extends BaseActivity {
 
@@ -36,6 +39,8 @@ public class EventDetailActivity extends BaseActivity {
     private Event current;
     private MyRegistration myReg;
     private boolean busy = false;
+    private ScheduleClashChecker.Clash clash;
+    private boolean clashChecking = false;
 
     private ListenerRegistration eventRegistration;
     private ListenerRegistration myRegRegistration;
@@ -57,7 +62,7 @@ public class EventDetailActivity extends BaseActivity {
         repository = EventRepository.getInstance(this);
 
         binding.toolbar.setNavigationOnClickListener(v -> finish());
-        binding.btnRegister.setOnClickListener(v -> register());
+        binding.btnRegister.setOnClickListener(v -> onRegisterClicked());
         binding.btnLeave.setOnClickListener(v -> confirmLeave());
         binding.btnParticipants.setOnClickListener(v -> {
             Intent intent = new Intent(this, EventParticipantsActivity.class);
@@ -163,6 +168,7 @@ public class EventDetailActivity extends BaseActivity {
 
         renderCompetition(e);
         renderRegistration(e);
+        checkClash(e);
 
         boolean manager = profile.getRoleEnum() == Role.ADMIN || e.hasOrganizer(profile.getUid());
         binding.managerBlock.setVisibility(manager ? View.VISIBLE : View.GONE);
@@ -236,6 +242,53 @@ public class EventDetailActivity extends BaseActivity {
     }
 
     // ------------------------------------------------------------------ actions
+
+    /** Warns first if this event overlaps one the student is already registered for. */
+    private void onRegisterClicked() {
+        if (clash == null) {
+            register();
+            return;
+        }
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_clash_title)
+                .setMessage(getString(R.string.dialog_clash_message, clash.title))
+                .setNegativeButton(R.string.action_back_out, null)
+                .setPositiveButton(R.string.action_register_anyway, (d, w) -> register())
+                .show();
+    }
+
+    /**
+     * Asks the ClubHubProvider (through a ContentResolver) whether this event overlaps a
+     * registered one, and shows a warning if so.
+     */
+    private void checkClash(Event e) {
+        String status = myReg != null && myReg.isActive() ? myReg.getStatus() : null;
+        if (profile.getRoleEnum() == Role.ADMIN || status != null
+                || e.registrationClosed(System.currentTimeMillis())) {
+            clash = null;
+            showClash();
+            return;
+        }
+        if (clashChecking) {
+            return;
+        }
+        clashChecking = true;
+        ScheduleClashChecker.check(this, e, result -> {
+            clashChecking = false;
+            clash = result;
+            showClash();
+        });
+    }
+
+    private void showClash() {
+        if (clash == null) {
+            binding.tvClash.setVisibility(View.GONE);
+            return;
+        }
+        binding.tvClash.setText(getString(R.string.clash_warning, clash.title,
+                TimeFormats.timeRange(new Date(clash.startMillis), new Date(clash.endMillis))));
+        binding.tvClash.setVisibility(View.VISIBLE);
+    }
 
     private void register() {
         setBusy(true);

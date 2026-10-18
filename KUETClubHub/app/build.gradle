@@ -14,7 +14,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = '0.2.0-week2'
+        versionName = '0.3.0-week3'
     }
 
     compileOptions {
@@ -34,6 +34,7 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'androidx.lifecycle:lifecycle-livedata:2.9.4'
+    implementation 'androidx.work:work-runtime:2.10.0'
 
     // Room (local cache)
     def room_version = '2.8.4'

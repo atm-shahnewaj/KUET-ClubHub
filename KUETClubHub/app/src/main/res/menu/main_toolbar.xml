@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_alerts"
+        android:icon="@drawable/ic_bell"
+        android:title="@string/action_alerts"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/action_toggle_theme"
         android:icon="@drawable/ic_theme_toggle"
         android:title="@string/action_toggle_theme"

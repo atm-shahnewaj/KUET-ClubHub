@@ -3,6 +3,19 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <!-- The schedule provider: read access for this app only (signature level), writes for nobody. -->
+    <permission
+        android:name="com.kuet.clubhub.permission.READ_SCHEDULE"
+        android:protectionLevel="signature" />
+    <permission
+        android:name="com.kuet.clubhub.permission.WRITE_SCHEDULE"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="com.kuet.clubhub.permission.READ_SCHEDULE" />
 
     <application
         android:name=".ClubHubApp"
@@ -46,6 +59,43 @@
         <activity
             android:name=".ui.events.EventParticipantsActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.alerts.AlertsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.profile.EditProfileActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <receiver
+            android:name=".notify.ReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".notify.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".notify.InterestAlertService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps a live listener on newly posted campus events and notifies the student only about events whose tags match the interests they chose." />
+        </service>
+
+        <provider
+            android:name=".provider.ClubHubProvider"
+            android:authorities="com.kuet.clubhub.provider"
+            android:exported="true"
+            android:readPermission="com.kuet.clubhub.permission.READ_SCHEDULE"
+            android:writePermission="com.kuet.clubhub.permission.WRITE_SCHEDULE" />
+
         <activity
             android:name=".ui.clubs.ClubEditActivity"
             android:exported="false"

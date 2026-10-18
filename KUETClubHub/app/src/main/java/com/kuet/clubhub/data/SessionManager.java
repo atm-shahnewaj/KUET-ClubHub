@@ -3,7 +3,13 @@ package com.kuet.clubhub.data;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import android.text.TextUtils;
+
 import com.kuet.clubhub.model.UserProfile;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Keeps a small copy of the signed-in user's profile on the device so the app can
@@ -19,6 +25,8 @@ public class SessionManager {
     private static final String K_EMAIL = "email";
     private static final String K_ROLE = "role";
     private static final String K_YEAR = "year";
+    private static final String K_SKILLS = "skills";
+    private static final String K_INTERESTS = "interests";
 
     private final SharedPreferences prefs;
 
@@ -35,6 +43,8 @@ public class SessionManager {
                 .putString(K_EMAIL, p.getEmail())
                 .putString(K_ROLE, p.getRole())
                 .putInt(K_YEAR, p.getYear())
+                .putString(K_SKILLS, join(p.getSkills()))
+                .putString(K_INTERESTS, join(p.getInterests()))
                 .apply();
     }
 
@@ -66,6 +76,19 @@ public class SessionManager {
         p.setEmail(prefs.getString(K_EMAIL, ""));
         p.setRole(prefs.getString(K_ROLE, "student"));
         p.setYear(prefs.getInt(K_YEAR, 0));
+        p.setSkills(split(prefs.getString(K_SKILLS, "")));
+        p.setInterests(split(prefs.getString(K_INTERESTS, "")));
         return p;
+    }
+
+    private static String join(List<String> list) {
+        return list == null ? "" : TextUtils.join(",", list);
+    }
+
+    private static List<String> split(String csv) {
+        if (csv == null || csv.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(Arrays.asList(csv.split(",")));
     }
 }
