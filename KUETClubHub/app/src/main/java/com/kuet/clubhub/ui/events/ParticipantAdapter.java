@@ -12,13 +12,18 @@ import com.kuet.clubhub.R;
 import com.kuet.clubhub.databinding.ItemParticipantBinding;
 import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.model.Participant;
-import com.kuet.clubhub.util.Years;
+import com.kuet.clubhub.util.TimeFormats;
 
 import java.util.Locale;
 import java.util.Objects;
 
+/** Rows of the organizer dashboard: who is registered, waiting, and already checked in. */
 public class ParticipantAdapter
         extends ListAdapter<Participant, ParticipantAdapter.ParticipantViewHolder> {
+
+    public interface OnParticipantClickListener {
+        void onParticipantClick(Participant participant);
+    }
 
     private static final DiffUtil.ItemCallback<Participant> DIFF =
             new DiffUtil.ItemCallback<Participant>() {
@@ -31,12 +36,16 @@ public class ParticipantAdapter
                 public boolean areContentsTheSame(@NonNull Participant a, @NonNull Participant b) {
                     return Objects.equals(a.getName(), b.getName())
                             && Objects.equals(a.getStatus(), b.getStatus())
-                            && a.getWaitSeq() == b.getWaitSeq();
+                            && a.getWaitSeq() == b.getWaitSeq()
+                            && a.isCheckedIn() == b.isCheckedIn();
                 }
             };
 
-    public ParticipantAdapter() {
+    private final OnParticipantClickListener listener;
+
+    public ParticipantAdapter(OnParticipantClickListener listener) {
         super(DIFF);
+        this.listener = listener;
     }
 
     @NonNull
@@ -48,10 +57,10 @@ public class ParticipantAdapter
 
     @Override
     public void onBindViewHolder(@NonNull ParticipantViewHolder holder, int position) {
-        holder.bind(getItem(position));
+        holder.bind(getItem(position), listener);
     }
 
-    static class ParticipantViewHolder extends RecyclerView.ViewHolder {
+    public static class ParticipantViewHolder extends RecyclerView.ViewHolder {
 
         private final ItemParticipantBinding binding;
 
@@ -60,16 +69,30 @@ public class ParticipantAdapter
             this.binding = binding;
         }
 
-        void bind(Participant p) {
+        void bind(Participant p, OnParticipantClickListener listener) {
             String name = p.getName() == null ? "" : p.getName();
             binding.tvAvatar.setText(name.isEmpty() ? "?"
                     : name.substring(0, 1).toUpperCase(Locale.ROOT));
             binding.tvName.setText(name);
-            binding.tvDetails.setText(p.getStudentId() + "  •  " + p.getDepartment());
+
+            String details = p.getStudentId() + "  •  " + p.getDepartment();
             boolean waiting = MyRegistration.WAITLISTED.equals(p.getStatus());
-            binding.tvStatus.setText(waiting ? R.string.status_waitlisted : R.string.status_registered);
-            binding.tvStatus.setBackgroundResource(waiting
-                    ? R.drawable.bg_pill_alert : R.drawable.bg_pill);
+            if (p.isCheckedIn() && p.getCheckedInAt() != null) {
+                details += "  •  " + TimeFormats.time(p.getCheckedInAt());
+            }
+            binding.tvDetails.setText(details);
+
+            if (waiting) {
+                binding.tvStatus.setText(R.string.status_waitlisted);
+                binding.tvStatus.setBackgroundResource(R.drawable.bg_pill_alert);
+            } else if (p.isCheckedIn()) {
+                binding.tvStatus.setText(R.string.status_checked_in);
+                binding.tvStatus.setBackgroundResource(R.drawable.bg_pill);
+            } else {
+                binding.tvStatus.setText(R.string.status_not_yet);
+                binding.tvStatus.setBackgroundResource(R.drawable.bg_pill_neutral);
+            }
+            binding.getRoot().setOnClickListener(v -> listener.onParticipantClick(p));
         }
     }
 }

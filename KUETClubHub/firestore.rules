@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// KUET ClubHub - rules for Week 1 + Week 2 (users, clubs, events, registrations, waiting list).
+// KUET ClubHub - rules for Weeks 1-4 (users, clubs, events, registrations, waiting list, check-ins).
 // Paste into Firebase Console -> Firestore Database -> Rules -> Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -156,10 +156,65 @@ service cloud.firestore {
                          && ((resource.data.status == 'cancelled' && (takesSeat() || joinsWaitlist()))
                              || (resource.data.status in ['registered', 'waitlisted']
                                  && request.resource.data.status == 'cancelled')))
+                        // my own registration gets its personal pass code (older registrations only)
+                        || (request.auth.uid == uid
+                            && !('passCode' in resource.data)
+                            && request.resource.data.diff(resource.data).affectedKeys()
+                                 .hasOnly(['passCode', 'updatedAt']))
                         // someone else's seat freed up: promote from the waiting list
                         || (request.auth.uid != uid
                             && resource.data.status == 'waitlisted'
                             && request.resource.data.status == 'registered'));
+      }
+
+      // ---- events/{eventId}/checkinToken/current: the organizer's rotating QR token.
+      // Only managers can read it, so a student cannot fetch the code without being at the venue.
+      match /checkinToken/{doc} {
+        allow read: if signedIn()
+                    && (isAdmin() || request.auth.uid in get(eventPath(eventId)).data.organizers);
+        allow write: if signedIn()
+                     && (isAdmin() || request.auth.uid in get(eventPath(eventId)).data.organizers)
+                     && request.resource.data.updatedAt == request.time;
+      }
+
+      // ---- events/{eventId}/checkins/{uid}: attendance records
+      match /checkins/{uid} {
+        function isManager() {
+          return isAdmin() || request.auth.uid in get(eventPath(eventId)).data.organizers;
+        }
+        function reg() {
+          return get(/databases/$(database)/documents/events/$(eventId)/registrations/$(uid)).data;
+        }
+        // The submitted token must be the current one, issued by the server less than 45 s ago
+        // (30 s rotation plus a little grace).
+        function tokenIsCurrent() {
+          let tok = get(/databases/$(database)/documents/events/$(eventId)/checkinToken/current).data;
+          return tok.token != ''
+                 && tok.token == request.resource.data.token
+                 && request.time < tok.updatedAt + duration.value(45, 's');
+        }
+
+        allow read: if signedIn() && (request.auth.uid == uid || isManager());
+
+        allow create: if signedIn()
+                      && request.resource.data.uid == uid
+                      && request.resource.data.timestamp == request.time
+                      && reg().status == 'registered'
+                      && (
+                           // a student scanned the organizer's rotating code
+                           (request.auth.uid == uid
+                            && request.resource.data.method == 'rotating_qr'
+                            && tokenIsCurrent())
+                           // the organizer scanned the student's personal pass
+                           || (isManager()
+                               && request.resource.data.method == 'pass'
+                               && request.resource.data.passCode == reg().passCode)
+                           // the organizer ticked the student off by hand
+                           || (isManager() && request.resource.data.method == 'manual')
+                         );
+
+        allow update: if false;
+        allow delete: if signedIn() && isManager();
       }
 
       // ---- events/{eventId}/waitlist/{seq}: queue positions, one small document per place

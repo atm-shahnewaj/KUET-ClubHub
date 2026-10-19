@@ -9,6 +9,8 @@ public class Participant {
     private String department;
     private String status;
     private long waitSeq;
+    private boolean checkedIn;
+    private java.util.Date checkedInAt;
 
     /** Required by Firestore. */
     public Participant() {
@@ -28,6 +30,12 @@ public class Participant {
 
     public long getWaitSeq() { return waitSeq; }
     public void setWaitSeq(long waitSeq) { this.waitSeq = waitSeq; }
+
+    public boolean isCheckedIn() { return checkedIn; }
+    public void setCheckedIn(boolean checkedIn) { this.checkedIn = checkedIn; }
+
+    public java.util.Date getCheckedInAt() { return checkedInAt; }
+    public void setCheckedInAt(java.util.Date checkedInAt) { this.checkedInAt = checkedInAt; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

@@ -1,10 +1,13 @@
 package com.kuet.clubhub.ui.events;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -13,15 +16,18 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.kuet.clubhub.R;
 import com.kuet.clubhub.base.BaseActivity;
 import com.kuet.clubhub.data.Callback;
+import com.kuet.clubhub.data.CheckInRepository;
 import com.kuet.clubhub.data.EventRepository;
 import com.kuet.clubhub.data.SessionManager;
 import com.kuet.clubhub.databinding.ActivityEventDetailBinding;
+import com.kuet.clubhub.model.CheckIn;
 import com.kuet.clubhub.model.Event;
 import com.kuet.clubhub.model.EventType;
 import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.provider.ScheduleClashChecker;
+import com.kuet.clubhub.ui.scan.ScanActivity;
 import com.kuet.clubhub.util.EventTypeStyle;
 import com.kuet.clubhub.util.TimeFormats;
 
@@ -38,12 +44,22 @@ public class EventDetailActivity extends BaseActivity {
 
     private Event current;
     private MyRegistration myReg;
+    private CheckIn myCheckIn;
     private boolean busy = false;
     private ScheduleClashChecker.Clash clash;
     private boolean clashChecking = false;
 
     private ListenerRegistration eventRegistration;
     private ListenerRegistration myRegRegistration;
+    private ListenerRegistration myCheckInRegistration;
+
+    /** The student scans the organizer's rotating code; the result is shown by the scanner itself. */
+    private final ActivityResultLauncher<Intent> scanLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Snackbar.make(binding.getRoot(), R.string.msg_checked_in, Snackbar.LENGTH_LONG).show();
+                }
+            });
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -65,11 +81,23 @@ public class EventDetailActivity extends BaseActivity {
         binding.btnRegister.setOnClickListener(v -> onRegisterClicked());
         binding.btnLeave.setOnClickListener(v -> confirmLeave());
         binding.btnParticipants.setOnClickListener(v -> {
-            Intent intent = new Intent(this, EventParticipantsActivity.class);
-            intent.putExtra(EventParticipantsActivity.EXTRA_EVENT_ID, eventId);
-            intent.putExtra(EventParticipantsActivity.EXTRA_EVENT_TITLE,
+            Intent intent = new Intent(this, EventDashboardActivity.class);
+            intent.putExtra(EventDashboardActivity.EXTRA_EVENT_ID, eventId);
+            intent.putExtra(EventDashboardActivity.EXTRA_EVENT_TITLE,
                     current == null ? "" : current.getTitle());
             startActivity(intent);
+        });
+        binding.btnShowPass.setOnClickListener(v -> {
+            Intent intent = new Intent(this, EventPassActivity.class);
+            intent.putExtra(EventPassActivity.EXTRA_EVENT_ID, eventId);
+            startActivity(intent);
+        });
+        binding.btnScanCheckin.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ScanActivity.class);
+            intent.putExtra(ScanActivity.EXTRA_MODE, ScanActivity.MODE_STUDENT_CHECKIN);
+            intent.putExtra(ScanActivity.EXTRA_EVENT_ID, eventId);
+            intent.putExtra(ScanActivity.EXTRA_EVENT_TITLE, current == null ? "" : current.getTitle());
+            scanLauncher.launch(intent);
         });
         binding.btnEditEvent.setOnClickListener(v -> {
             Intent intent = new Intent(this, EventEditActivity.class);
@@ -117,6 +145,19 @@ public class EventDetailActivity extends BaseActivity {
                             Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
                         }
                     });
+            myCheckInRegistration = CheckInRepository.listenMyCheckIn(eventId, profile.getUid(),
+                    new CheckInRepository.MyCheckInListener() {
+                        @Override
+                        public void onChanged(CheckIn checkIn) {
+                            myCheckIn = checkIn;
+                            render();
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            // The status pill is a nicety; ignore (for example while offline).
+                        }
+                    });
         }
     }
 
@@ -130,6 +171,10 @@ public class EventDetailActivity extends BaseActivity {
         if (myRegRegistration != null) {
             myRegRegistration.remove();
             myRegRegistration = null;
+        }
+        if (myCheckInRegistration != null) {
+            myCheckInRegistration.remove();
+            myCheckInRegistration = null;
         }
     }
 
@@ -203,6 +248,9 @@ public class EventDetailActivity extends BaseActivity {
         binding.btnLeave.setVisibility(View.GONE);
         binding.tvMyStatus.setVisibility(View.GONE);
         binding.tvClosed.setVisibility(View.GONE);
+        binding.tvCheckedIn.setVisibility(View.GONE);
+        binding.btnShowPass.setVisibility(View.GONE);
+        binding.btnScanCheckin.setVisibility(View.GONE);
 
         if (profile.getRoleEnum() == Role.ADMIN) {
             return; // admins moderate; they do not register
@@ -213,7 +261,12 @@ public class EventDetailActivity extends BaseActivity {
         if (MyRegistration.REGISTERED.equals(status)) {
             binding.tvMyStatus.setVisibility(View.VISIBLE);
             binding.tvMyStatus.setText(R.string.my_status_registered);
-            if (!e.hasEnded(now)) {
+            if (myCheckIn != null) {
+                // Present: the pass and the cancel button are no longer needed.
+                binding.tvCheckedIn.setVisibility(View.VISIBLE);
+            } else if (!e.hasEnded(now)) {
+                binding.btnShowPass.setVisibility(View.VISIBLE);
+                binding.btnScanCheckin.setVisibility(View.VISIBLE);
                 binding.btnLeave.setVisibility(View.VISIBLE);
                 binding.btnLeave.setText(R.string.action_cancel_registration);
             }

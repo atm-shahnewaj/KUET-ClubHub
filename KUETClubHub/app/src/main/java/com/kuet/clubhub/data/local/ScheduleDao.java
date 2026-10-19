@@ -31,6 +31,9 @@ public abstract class ScheduleDao {
     @Query("SELECT COUNT(*) FROM registered_events WHERE eventId = :eventId AND status = 'registered'")
     public abstract int countRegistered(String eventId);
 
+    @Query("SELECT * FROM registered_events WHERE eventId = :eventId LIMIT 1")
+    public abstract ScheduledEventEntity findById(String eventId);
+
     /** Raw cursors for the ContentProvider. */
     @Query("SELECT * FROM registered_events WHERE status = 'registered' ORDER BY startMillis ASC")
     public abstract Cursor registeredCursor();

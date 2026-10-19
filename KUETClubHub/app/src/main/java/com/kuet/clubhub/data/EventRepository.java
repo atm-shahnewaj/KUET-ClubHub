@@ -18,6 +18,7 @@ import com.kuet.clubhub.model.Event;
 import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.model.Participant;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.util.Codes;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -326,8 +327,12 @@ public class EventRepository {
                 tx.update(eventRef, "waitTail", waitTail + 1, "waitlistCount", waitCount + 1);
             }
 
+            // A personal pass code: only the holder's phone and the organizer can see it.
+            String passCode = Codes.random(10);
+
             Map<String, Object> regData = new HashMap<>();
             regData.put("uid", user.getUid());
+            regData.put("passCode", passCode);
             regData.put("name", user.getName());
             regData.put("studentId", user.getStudentId());
             regData.put("department", user.getDepartment());
@@ -340,6 +345,7 @@ public class EventRepository {
 
             Map<String, Object> mirror = new HashMap<>();
             mirror.put("eventId", eventId);
+            mirror.put("passCode", passCode);
             mirror.put("title", event.getString("title"));
             mirror.put("clubName", event.getString("clubName"));
             mirror.put("type", event.getString("type"));
@@ -442,6 +448,60 @@ public class EventRepository {
             } else {
                 cb.onError(describe(task.getException()));
             }
+        });
+    }
+
+    /**
+     * Gives an older registration (made before passes existed) its pass code.
+     * The callback receives the code.
+     */
+    public void ensurePassCode(String eventId, String uid, Callback<String> cb) {
+        final DocumentReference eventRef = db.collection(EVENTS).document(eventId);
+        final DocumentReference regRef = eventRef.collection(REGISTRATIONS).document(uid);
+        final DocumentReference mirrorRef = mirrorCollection(uid).document(eventId);
+
+        db.runTransaction((Transaction.Function<String>) tx -> {
+            DocumentSnapshot reg = tx.get(regRef);
+            DocumentSnapshot mirror = tx.get(mirrorRef);
+            if (!reg.exists() || !MyRegistration.REGISTERED.equals(reg.getString("status"))) {
+                throw new FirebaseFirestoreException("You are not registered for this event.",
+                        FirebaseFirestoreException.Code.FAILED_PRECONDITION);
+            }
+            FieldValue now = FieldValue.serverTimestamp();
+            String existing = reg.getString("passCode");
+            if (existing != null && !existing.isEmpty()) {
+                if (mirror.exists() && mirror.getString("passCode") == null) {
+                    tx.update(mirrorRef, "passCode", existing);
+                }
+                return existing;
+            }
+            String code = Codes.random(10);
+            tx.update(regRef, "passCode", code, "updatedAt", now);
+            if (mirror.exists()) {
+                tx.update(mirrorRef, "passCode", code, "updatedAt", now);
+            }
+            return code;
+        }).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                cb.onSuccess(task.getResult());
+            } else {
+                cb.onError(describe(task.getException()));
+            }
+        });
+    }
+
+    /** One-time read of my own registration summary (used when the local copy is missing). */
+    public void getMyRegistration(String uid, String eventId, Callback<MyRegistration> cb) {
+        mirrorCollection(uid).document(eventId).get().addOnCompleteListener(task -> {
+            if (!task.isSuccessful() || task.getResult() == null) {
+                cb.onError(describe(task.getException()));
+                return;
+            }
+            MyRegistration r = task.getResult().toObject(MyRegistration.class);
+            if (r != null) {
+                r.setEventId(task.getResult().getId());
+            }
+            cb.onSuccess(r);
         });
     }
 

@@ -22,6 +22,7 @@ public class ScheduledEventEntity {
     public long startMillis;
     public long endMillis;
     public String status;
+    public String passCode;
 
     public static ScheduledEventEntity fromRegistration(MyRegistration r) {
         ScheduledEventEntity e = new ScheduledEventEntity();
@@ -31,6 +32,7 @@ public class ScheduledEventEntity {
         e.startMillis = r.getStartTime() == null ? 0 : r.getStartTime().getTime();
         e.endMillis = r.getEndTime() == null ? e.startMillis : r.getEndTime().getTime();
         e.status = r.getStatus();
+        e.passCode = r.getPassCode();
         return e;
     }
 }

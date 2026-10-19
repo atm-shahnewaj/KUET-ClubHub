@@ -18,6 +18,7 @@ public class MyRegistration {
     private String venue;
     private String status;
     private long waitSeq;
+    private String passCode;
 
     /** Required by Firestore. */
     public MyRegistration() {
@@ -49,6 +50,9 @@ public class MyRegistration {
 
     public long getWaitSeq() { return waitSeq; }
     public void setWaitSeq(long waitSeq) { this.waitSeq = waitSeq; }
+
+    public String getPassCode() { return passCode; }
+    public void setPassCode(String passCode) { this.passCode = passCode; }
 
     public boolean isActive() {
         return REGISTERED.equals(status) || WAITLISTED.equals(status);

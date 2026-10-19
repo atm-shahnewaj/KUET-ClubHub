@@ -362,6 +362,42 @@
                 android:visibility="gone" />
 
             <TextView
+                android:id="@+id/tv_checked_in"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_pill"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="6dp"
+                android:text="@string/my_status_checked_in"
+                android:textColor="?attr/colorOnPrimaryContainer"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_scan_checkin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:minHeight="54dp"
+                android:text="@string/action_scan_checkin"
+                android:textSize="16sp"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_show_pass"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:minHeight="54dp"
+                android:text="@string/action_show_pass"
+                android:visibility="gone"
+                app:cornerRadius="16dp" />
+
+            <TextView
                 android:id="@+id/tv_clash"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

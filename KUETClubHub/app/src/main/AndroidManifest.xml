@@ -7,6 +7,13 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- The camera is only needed for QR check-in; phones without one can still install the app. -->
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
 
     <!-- The schedule provider: read access for this app only (signature level), writes for nobody. -->
     <permission
@@ -57,8 +64,18 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".ui.events.EventParticipantsActivity"
+            android:name=".ui.events.EventDashboardActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.events.EventCheckInActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.events.EventPassActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.scan.ScanActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".ui.alerts.AlertsActivity"
             android:exported="false" />

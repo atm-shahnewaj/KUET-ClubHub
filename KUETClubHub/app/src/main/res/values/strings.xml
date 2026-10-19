@@ -147,7 +147,7 @@
     <string name="action_join_waitlist">Join waiting list</string>
     <string name="action_cancel_registration">Cancel registration</string>
     <string name="action_leave_waitlist">Leave waiting list</string>
-    <string name="action_participants">View participants</string>
+    <string name="action_participants">Open dashboard</string>
     <string name="action_edit_event">Edit event</string>
     <string name="action_keep">Keep it</string>
     <string name="action_confirm">Yes, cancel</string>
@@ -261,4 +261,64 @@
     <string name="dialog_clash_message">This event overlaps with \"%1$s\", which you are registered for. Register anyway?</string>
     <string name="action_register_anyway">Register anyway</string>
     <string name="action_back_out">Go back</string>
+
+    <!-- Week 4: pass, check-in, dashboard, scanner -->
+    <string name="title_pass">Event pass</string>
+    <string name="title_checkin">Check-in</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_scan_checkin">Scan to check in</string>
+    <string name="title_scan_passes">Scan passes</string>
+
+    <string name="action_show_pass">Show my pass</string>
+    <string name="action_scan_checkin">Scan code to check in</string>
+    <string name="action_open_checkin">Start check-in</string>
+    <string name="action_scan_passes">Scan passes</string>
+    <string name="action_grant_camera">Allow camera</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_check_in">Check in</string>
+
+    <string name="my_status_checked_in">You are checked in</string>
+    <string name="msg_checked_in">You are checked in. Enjoy the event!</string>
+    <string name="status_checked_in">Checked in</string>
+    <string name="status_not_yet">Not yet</string>
+
+    <string name="pass_hint">Show this QR code to the organizer at the entrance. It is stored on your phone, so it works without internet.</string>
+    <string name="pass_qr_description">Your personal event pass as a QR code</string>
+    <string name="pass_code_label">Pass %1$s</string>
+    <string name="pass_not_registered">You need to be registered for this event to have a pass.</string>
+
+    <string name="checkin_qr_description">Check-in QR code that changes every 30 seconds</string>
+    <string name="checkin_hint">Show this screen to attendees. They scan it with ClubHub, and the code changes every 30 seconds so a screenshot is useless. Leaving this screen closes check-in.</string>
+    <string name="checkin_refreshing_in">New code in %1$d s</string>
+    <string name="checkin_live_counter">%1$d of %2$d checked in</string>
+
+    <string name="dashboard_checked_in_of">checked in of %1$d registered</string>
+    <string name="dashboard_tap_hint">Tap a registered student who has not arrived to check them in by hand.</string>
+    <string name="stat_registered">Registered</string>
+    <string name="stat_waiting">Waiting</string>
+    <string name="stat_not_yet">Not yet here</string>
+    <string name="stat_seats">Seats</string>
+    <string name="dialog_manual_title">Check in by hand?</string>
+    <string name="dialog_manual_message">Mark %1$s as present without scanning?</string>
+    <string name="msg_manual_done">%1$s is checked in.</string>
+
+    <string name="camera_permission_needed">ClubHub needs the camera to scan QR codes. Nothing is recorded or saved.</string>
+    <string name="scan_instruction_student">Point the camera at the QR code on the organizer\'s screen.</string>
+    <string name="scan_instruction_organizer">Scan each student\'s event pass, one after another.</string>
+    <string name="scan_session_counter">Checked in during this session: %1$d</string>
+    <string name="scan_checked_in_you">You are checked in!</string>
+    <string name="scan_checked_in_named">Checked in</string>
+    <string name="scan_already_checked_in">Already checked in</string>
+    <string name="scan_at_time">at %1$s</string>
+    <string name="scan_failed">Could not check in</string>
+    <string name="scan_not_checkin_code">Not a check-in code</string>
+    <string name="scan_not_checkin_code_hint">Scan the code on the organizer\'s screen.</string>
+    <string name="scan_wrong_event">Wrong event</string>
+    <string name="scan_wrong_event_hint">This code belongs to a different event.</string>
+    <string name="scan_pass_wrong_event_hint">This pass is for a different event.</string>
+    <string name="scan_not_a_pass">Not a ClubHub pass</string>
+    <string name="scan_not_a_pass_hint">Ask the student to open their event pass.</string>
+    <string name="scan_not_registered">Not registered</string>
+    <string name="scan_waitlisted">On the waiting list</string>
+    <string name="scan_invalid_pass">Invalid pass</string>
 </resources>
