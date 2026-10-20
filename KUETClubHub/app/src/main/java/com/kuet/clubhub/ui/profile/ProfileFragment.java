@@ -26,6 +26,7 @@ import com.kuet.clubhub.notify.AlertProcessor;
 import com.kuet.clubhub.notify.NotificationHelper;
 import com.kuet.clubhub.notify.ReminderScheduler;
 import com.kuet.clubhub.ui.auth.LoginActivity;
+import com.kuet.clubhub.ui.certificate.VerifyCertificateActivity;
 import com.kuet.clubhub.util.Io;
 import com.kuet.clubhub.util.NotificationPrefs;
 import com.kuet.clubhub.util.ThemeManager;
@@ -52,6 +53,9 @@ public class ProfileFragment extends Fragment {
 
         binding.btnEditProfile.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), EditProfileActivity.class)));
+
+        binding.btnVerifyCert.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), VerifyCertificateActivity.class)));
 
         setupNotificationControls();
         setupThemeToggle();

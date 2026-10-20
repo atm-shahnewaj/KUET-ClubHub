@@ -106,6 +106,26 @@
                 android:value="Keeps a live listener on newly posted campus events and notifies the student only about events whose tags match the interests they chose." />
         </service>
 
+        <activity
+            android:name=".ui.clubs.ClubMembersActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.feedback.FeedbackListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.teams.TeamsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.teams.TeamDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.certificate.CertificateActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.certificate.VerifyCertificateActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
         <provider
             android:name=".provider.ClubHubProvider"
             android:authorities="com.kuet.clubhub.provider"
@@ -117,6 +137,17 @@
             android:name=".ui.clubs.ClubEditActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- Shares generated PDF certificates (files/certificates) with PDF viewers and chat apps. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.kuet.clubhub.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

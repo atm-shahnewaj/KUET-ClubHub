@@ -38,6 +38,7 @@ import com.kuet.clubhub.base.BaseActivity;
 import com.kuet.clubhub.data.Callback;
 import com.kuet.clubhub.data.CheckInRepository;
 import com.kuet.clubhub.data.SessionManager;
+import com.kuet.clubhub.data.TeamRepository;
 import com.kuet.clubhub.databinding.ActivityScanBinding;
 import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.util.QrPayload;
@@ -53,6 +54,8 @@ import java.util.concurrent.Executors;
  *
  * MODE_STUDENT_CHECKIN: a student scans the organizer's rotating code, then the screen closes.
  * MODE_ORGANIZER_SCAN:  an organizer scans student passes one after another.
+ * MODE_JOIN_TEAM:       a student scans a team's invite QR code and joins that team.
+ * MODE_VERIFY_CERT:     scans a certificate's QR code and returns its id to the caller.
  */
 public class ScanActivity extends BaseActivity {
 
@@ -61,6 +64,10 @@ public class ScanActivity extends BaseActivity {
     public static final String EXTRA_EVENT_TITLE = "event_title";
     public static final String MODE_STUDENT_CHECKIN = "student";
     public static final String MODE_ORGANIZER_SCAN = "organizer";
+    public static final String MODE_JOIN_TEAM = "team";
+    public static final String MODE_VERIFY_CERT = "cert";
+    /** Result extra of MODE_VERIFY_CERT. */
+    public static final String EXTRA_CERT_ID = "cert_id";
 
     private static final int SUCCESS = 0;
     private static final int WARNING = 1;
@@ -87,6 +94,7 @@ public class ScanActivity extends BaseActivity {
     private String lastRaw;
     private long lastRawAt = 0;
     private int scannedOk = 0;
+    private Intent resultData;
 
     private final ActivityResultLauncher<String> cameraPermission =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
@@ -112,16 +120,32 @@ public class ScanActivity extends BaseActivity {
         String title = getIntent().getStringExtra(EXTRA_EVENT_TITLE);
         eventTitle = title == null ? "" : title;
         profile = new SessionManager(this).getProfile();
-        if (mode == null || eventId == null || profile == null) {
+        // Check-in modes belong to one event; joining a team and verifying a certificate do not.
+        boolean needsEvent = MODE_STUDENT_CHECKIN.equals(mode) || MODE_ORGANIZER_SCAN.equals(mode);
+        if (mode == null || profile == null || (needsEvent && eventId == null)) {
             finish();
             return;
         }
 
         boolean organizer = MODE_ORGANIZER_SCAN.equals(mode);
-        binding.toolbar.setTitle(organizer ? R.string.title_scan_passes : R.string.title_scan_checkin);
+        int titleRes;
+        int instructionRes;
+        if (MODE_JOIN_TEAM.equals(mode)) {
+            titleRes = R.string.title_scan_team;
+            instructionRes = R.string.scan_instruction_team;
+        } else if (MODE_VERIFY_CERT.equals(mode)) {
+            titleRes = R.string.title_scan_certificate;
+            instructionRes = R.string.scan_instruction_certificate;
+        } else if (organizer) {
+            titleRes = R.string.title_scan_passes;
+            instructionRes = R.string.scan_instruction_organizer;
+        } else {
+            titleRes = R.string.title_scan_checkin;
+            instructionRes = R.string.scan_instruction_student;
+        }
+        binding.toolbar.setTitle(titleRes);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
-        binding.tvInstruction.setText(organizer
-                ? R.string.scan_instruction_organizer : R.string.scan_instruction_student);
+        binding.tvInstruction.setText(instructionRes);
         binding.tvCounter.setVisibility(organizer ? View.VISIBLE : View.GONE);
         updateCounter();
 
@@ -202,9 +226,45 @@ public class ScanActivity extends BaseActivity {
         QrPayload payload = QrPayload.parse(raw);
         if (MODE_ORGANIZER_SCAN.equals(mode)) {
             handleOrganizerScan(payload);
+        } else if (MODE_JOIN_TEAM.equals(mode)) {
+            handleTeamScan(payload);
+        } else if (MODE_VERIFY_CERT.equals(mode)) {
+            handleCertificateScan(payload);
         } else {
             handleStudentScan(payload);
         }
+    }
+
+    private void handleTeamScan(@Nullable QrPayload payload) {
+        if (payload == null || payload.type != QrPayload.TYPE_TEAM) {
+            showResult(ERROR, getString(R.string.scan_not_team_code),
+                    getString(R.string.scan_not_team_code_hint), STUDENT_RESULT_MS, false);
+            return;
+        }
+        TeamRepository.joinWithCode(payload.secret, profile, new Callback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                showResult(SUCCESS, getString(R.string.scan_joined_team), "",
+                        STUDENT_RESULT_MS, true);
+            }
+
+            @Override
+            public void onError(String message) {
+                showResult(ERROR, getString(R.string.scan_join_failed), message,
+                        STUDENT_RESULT_MS * 2, false);
+            }
+        });
+    }
+
+    private void handleCertificateScan(@Nullable QrPayload payload) {
+        if (payload == null || payload.type != QrPayload.TYPE_CERT) {
+            showResult(ERROR, getString(R.string.scan_not_certificate),
+                    getString(R.string.scan_not_certificate_hint), STUDENT_RESULT_MS, false);
+            return;
+        }
+        resultData = new Intent().putExtra(EXTRA_CERT_ID, payload.secret);
+        showResult(SUCCESS, getString(R.string.scan_certificate_read), payload.secret,
+                ORGANIZER_RESULT_MS, true);
     }
 
     private void handleStudentScan(@Nullable QrPayload payload) {
@@ -326,7 +386,7 @@ public class ScanActivity extends BaseActivity {
             binding.resultOverlay.setVisibility(View.GONE);
             handling = false;
             if (finishWhenDone) {
-                setResult(RESULT_OK);
+                setResult(RESULT_OK, resultData);
                 finish();
             }
         }, durationMs);

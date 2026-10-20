@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- PDF certificates are written to files/certificates and shared through FileProvider. -->
+    <files-path
+        name="certificates"
+        path="certificates/" />
+</paths>

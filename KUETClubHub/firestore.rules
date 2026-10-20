@@ -1,6 +1,7 @@
 rules_version = '2';
 
-// KUET ClubHub - rules for Weeks 1-4 (users, clubs, events, registrations, waiting list, check-ins).
+// KUET ClubHub - rules for Weeks 1-5 (users, clubs, events, registrations, waiting list, check-ins,
+// club memberships, feedback, teams, certificates).
 // Paste into Firebase Console -> Firestore Database -> Rules -> Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -27,6 +28,32 @@ service cloud.firestore {
 
     function eventPath(eventId) {
       return /databases/$(database)/documents/events/$(eventId);
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function memberPath(clubId, uid) {
+      return /databases/$(database)/documents/clubs/$(clubId)/members/$(uid);
+    }
+
+    function teamPath(teamId) {
+      return /databases/$(database)/documents/teams/$(teamId);
+    }
+
+    function claimPath(eventId, uid) {
+      return /databases/$(database)/documents/events/$(eventId)/teamMembers/$(uid);
+    }
+
+    function checkinPath(eventId, uid) {
+      return /databases/$(database)/documents/events/$(eventId)/checkins/$(uid);
+    }
+
+    // A student holds a real seat (not the waiting list) for the event.
+    function isRegistered(eventId, uid) {
+      return exists(/databases/$(database)/documents/events/$(eventId)/registrations/$(uid))
+             && get(/databases/$(database)/documents/events/$(eventId)/registrations/$(uid)).data.status == 'registered';
     }
 
     // ---- users/{uid}
@@ -61,6 +88,26 @@ service cloud.firestore {
                   && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])));
         allow delete: if signedIn() && request.auth.uid == uid;
       }
+
+      // ---- users/{uid}/teamInvites/{teamId}: invitations sent to me by team leaders.
+      // Accepting or declining deletes the invitation.
+      match /teamInvites/{teamId} {
+        function leaderOfTeam() {
+          return get(teamPath(teamId)).data.leaderUid == request.auth.uid;
+        }
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow create: if signedIn()
+                      && leaderOfTeam()
+                      && uid != request.auth.uid
+                      && request.resource.data.fromUid == request.auth.uid
+                      && request.resource.data.teamId == teamId;
+        // The leader may re-send an invitation that is still waiting.
+        allow update: if signedIn()
+                      && leaderOfTeam()
+                      && request.resource.data.fromUid == request.auth.uid
+                      && request.resource.data.teamId == teamId;
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
     }
 
     // ---- clubs/{clubId}
@@ -75,13 +122,53 @@ service cloud.firestore {
 
       // Admins can change anything; an organizer can edit only their own club
       // and cannot approve it or change who runs it.
+      // A member leaving the club may lower the member count by one, together with deleting
+      // their own member document in the same write.
       allow update: if isAdmin()
                     || (isOrganizer()
                         && request.auth.uid in resource.data.organizers
                         && request.resource.data.approved == resource.data.approved
-                        && request.resource.data.organizers == resource.data.organizers);
+                        && request.resource.data.organizers == resource.data.organizers)
+                    || (signedIn()
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount'])
+                        && request.resource.data.memberCount == resource.data.memberCount - 1
+                        && request.resource.data.memberCount >= 0
+                        && exists(memberPath(clubId, request.auth.uid))
+                        && get(memberPath(clubId, request.auth.uid)).data.status == 'approved'
+                        && !existsAfter(memberPath(clubId, request.auth.uid)));
 
       allow delete: if isAdmin();
+
+      // ---- clubs/{clubId}/members/{uid}: membership applications and members.
+      // The status moves pending -> approved / rejected, decided by an organizer of the club.
+      match /members/{uid} {
+        function isClubManager() {
+          return isAdmin() || request.auth.uid in get(clubPath(clubId)).data.organizers;
+        }
+
+        allow read: if signedIn() && (request.auth.uid == uid || isClubManager());
+
+        // Apply: only for yourself, only to an approved club, always as 'pending'.
+        allow create: if signedIn()
+                      && request.auth.uid == uid
+                      && request.resource.data.uid == uid
+                      && request.resource.data.status == 'pending'
+                      && get(clubPath(clubId)).data.approved == true;
+
+        allow update: if signedIn() && (
+                      // apply again after a rejection
+                      (request.auth.uid == uid
+                       && request.resource.data.uid == uid
+                       && resource.data.status == 'rejected'
+                       && request.resource.data.status == 'pending')
+                      // an organizer decides
+                      || (isClubManager()
+                          && resource.data.status == 'pending'
+                          && request.resource.data.status in ['approved', 'rejected']));
+
+        // Leave or withdraw yourself; organizers can remove anyone.
+        allow delete: if signedIn() && (request.auth.uid == uid || isClubManager());
+      }
     }
 
     // ---- events/{eventId}
@@ -217,6 +304,93 @@ service cloud.firestore {
         allow delete: if signedIn() && isManager();
       }
 
+      // ---- events/{eventId}/feedback/{uid}: one rating and comment per attendee.
+      // Only accepted from a student whose check-in record exists (verified attendance).
+      match /feedback/{uid} {
+        function fb() {
+          return request.resource.data;
+        }
+        allow read: if signedIn()
+                    && (request.auth.uid == uid
+                        || isAdmin()
+                        || request.auth.uid in get(eventPath(eventId)).data.organizers);
+        allow create, update: if signedIn()
+                              && request.auth.uid == uid
+                              && fb().uid == uid
+                              && fb().rating is int
+                              && fb().rating >= 1
+                              && fb().rating <= 5
+                              && fb().comment is string
+                              && fb().comment.size() <= 500
+                              && fb().updatedAt == request.time
+                              && exists(checkinPath(eventId, uid));
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+
+      // ---- events/{eventId}/certIssued/{uid}: points to the student's certificate, created once
+      // together with the certificate itself, so there is exactly one per student per event.
+      match /certIssued/{uid} {
+        allow read: if signedIn()
+                    && (request.auth.uid == uid
+                        || isAdmin()
+                        || request.auth.uid in get(eventPath(eventId)).data.organizers);
+        allow create: if signedIn()
+                      && request.auth.uid == uid
+                      && existsAfter(/databases/$(database)/documents/certificates/$(request.resource.data.certId));
+        allow update, delete: if false;
+      }
+
+      // ---- events/{eventId}/teamMembers/{uid}: "this student is in team X for this event".
+      // It can only be created (never updated), so a student cannot be in two teams of one event.
+      match /teamMembers/{uid} {
+        function tm() {
+          return request.resource.data;
+        }
+        function teamAfter() {
+          return getAfter(teamPath(tm().teamId)).data;
+        }
+        // How the student got in: created the team, joined an open team, used the invite code,
+        // or accepted an invitation.
+        function viaOk() {
+          return (tm().via == 'leader' && teamAfter().leaderUid == uid)
+                 || (tm().via == 'open' && get(teamPath(tm().teamId)).data.open == true)
+                 || (tm().via == 'code'
+                     && get(/databases/$(database)/documents/inviteCodes/$(tm().code)).data.teamId == tm().teamId)
+                 || (tm().via == 'invite'
+                     && exists(/databases/$(database)/documents/users/$(uid)/teamInvites/$(tm().teamId)));
+        }
+
+        allow read: if signedIn()
+                    && (request.auth.uid == uid
+                        || isAdmin()
+                        || request.auth.uid in get(eventPath(eventId)).data.organizers);
+
+        allow create: if signedIn()
+                      && request.auth.uid == uid
+                      && tm().uid == uid
+                      && isRegistered(eventId, uid)
+                      && get(eventPath(eventId)).data.startTime > request.time
+                      && teamAfter().eventId == eventId
+                      && uid in teamAfter().memberUids
+                      && teamAfter().memberUids.size() <= teamAfter().maxSize
+                      && viaOk();
+
+        allow update: if false;
+        allow delete: if signedIn()
+                      && (request.auth.uid == uid
+                          || get(teamPath(resource.data.teamId)).data.leaderUid == request.auth.uid);
+      }
+
+      // ---- events/{eventId}/seekers/{uid}: the looking-for-teammates board
+      match /seekers/{uid} {
+        allow read: if signedIn();
+        allow create, update: if signedIn()
+                              && request.auth.uid == uid
+                              && request.resource.data.uid == uid
+                              && isRegistered(eventId, uid);
+        allow delete: if signedIn() && request.auth.uid == uid;
+      }
+
       // ---- events/{eventId}/waitlist/{seq}: queue positions, one small document per place
       match /waitlist/{seq} {
         allow read: if signedIn();
@@ -226,6 +400,97 @@ service cloud.firestore {
                           || (existsAfter(/databases/$(database)/documents/events/$(eventId)/registrations/$(resource.data.uid))
                               && getAfter(/databases/$(database)/documents/events/$(eventId)/registrations/$(resource.data.uid)).data.status == 'registered'));
       }
+    }
+
+    // ---- teams/{teamId}: a team for a competition
+    match /teams/{teamId} {
+      allow read: if signedIn();
+
+      // Created by its leader, together with the leader's own teamMembers document
+      // (same batch), and with the size limits copied from the event.
+      allow create: if signedIn()
+                    && request.resource.data.leaderUid == request.auth.uid
+                    && request.resource.data.memberUids == [request.auth.uid]
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() >= 3
+                    && request.resource.data.name.size() <= 40
+                    && get(eventPath(request.resource.data.eventId)).data.type == 'competition'
+                    && request.resource.data.maxSize == get(eventPath(request.resource.data.eventId)).data.teamSizeMax
+                    && request.resource.data.minSize == get(eventPath(request.resource.data.eventId)).data.teamSizeMin
+                    && existsAfter(claimPath(request.resource.data.eventId, request.auth.uid))
+                    && getAfter(claimPath(request.resource.data.eventId, request.auth.uid)).data.teamId == teamId;
+
+      allow update: if signedIn() && (
+                    // the leader edits the team or removes members (never adds them)
+                    (resource.data.leaderUid == request.auth.uid
+                     && request.resource.data.leaderUid == resource.data.leaderUid
+                     && request.resource.data.eventId == resource.data.eventId
+                     && request.resource.data.maxSize == resource.data.maxSize
+                     && request.resource.data.minSize == resource.data.minSize
+                     && request.auth.uid in request.resource.data.memberUids
+                     && resource.data.memberUids.hasAll(request.resource.data.memberUids))
+                    // a student joins: exactly one more member, within the size limit,
+                    // together with their own teamMembers document
+                    || (!(request.auth.uid in resource.data.memberUids)
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['memberUids', 'memberNames', 'memberSkills', 'updatedAt'])
+                        && request.resource.data.memberUids.size() == resource.data.memberUids.size() + 1
+                        && request.resource.data.memberUids.size() <= resource.data.maxSize
+                        && request.auth.uid in request.resource.data.memberUids
+                        && existsAfter(claimPath(resource.data.eventId, request.auth.uid))
+                        && getAfter(claimPath(resource.data.eventId, request.auth.uid)).data.teamId == teamId)
+                    // a member (not the leader) leaves
+                    || (request.auth.uid in resource.data.memberUids
+                        && request.auth.uid != resource.data.leaderUid
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['memberUids', 'memberNames', 'memberSkills', 'updatedAt'])
+                        && request.resource.data.memberUids.size() == resource.data.memberUids.size() - 1
+                        && !(request.auth.uid in request.resource.data.memberUids)
+                        && !existsAfter(claimPath(resource.data.eventId, request.auth.uid))));
+
+      allow delete: if signedIn() && resource.data.leaderUid == request.auth.uid;
+
+      // ---- teams/{teamId}/private/invite: the invite code, visible to members only.
+      // Joining rules compare the code a student presents with inviteCodes/{code}.
+      match /private/{doc} {
+        allow read: if signedIn() && request.auth.uid in get(teamPath(teamId)).data.memberUids;
+        allow create: if signedIn() && getAfter(teamPath(teamId)).data.leaderUid == request.auth.uid;
+        allow update: if false;
+        allow delete: if signedIn() && get(teamPath(teamId)).data.leaderUid == request.auth.uid;
+      }
+    }
+
+    // ---- inviteCodes/{code}: code -> team lookup. A code can be read only if you already
+    // know it (get), never listed, so codes cannot be harvested.
+    match /inviteCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+                    && getAfter(teamPath(request.resource.data.teamId)).data.leaderUid == request.auth.uid;
+      allow update: if false;
+      allow delete: if signedIn() && get(teamPath(resource.data.teamId)).data.leaderUid == request.auth.uid;
+    }
+
+    // ---- certificates/{certId}: the public record the Verify screen reads.
+    // Anyone signed in can look one up by id, nobody can list them. A student can create one
+    // for themselves only for an event they were checked in to, after it ended, and the copied
+    // name, event title, club and date must match the real documents.
+    match /certificates/{certId} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.type == 'participation'
+                    && request.resource.data.issuedAt == request.time
+                    && exists(checkinPath(request.resource.data.eventId, request.auth.uid))
+                    && request.time > get(eventPath(request.resource.data.eventId)).data.endTime
+                    && request.resource.data.eventTitle == get(eventPath(request.resource.data.eventId)).data.title
+                    && request.resource.data.clubName == get(eventPath(request.resource.data.eventId)).data.clubName
+                    && request.resource.data.eventDate == get(eventPath(request.resource.data.eventId)).data.startTime
+                    && request.resource.data.name == get(userPath(request.auth.uid)).data.name
+                    && existsAfter(/databases/$(database)/documents/events/$(request.resource.data.eventId)/certIssued/$(request.auth.uid))
+                    && getAfter(/databases/$(database)/documents/events/$(request.resource.data.eventId)/certIssued/$(request.auth.uid)).data.certId == certId;
+      allow update, delete: if false;
     }
   }
 }

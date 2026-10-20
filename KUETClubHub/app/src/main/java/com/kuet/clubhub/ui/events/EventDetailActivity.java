@@ -18,15 +18,21 @@ import com.kuet.clubhub.base.BaseActivity;
 import com.kuet.clubhub.data.Callback;
 import com.kuet.clubhub.data.CheckInRepository;
 import com.kuet.clubhub.data.EventRepository;
+import com.kuet.clubhub.data.FeedbackRepository;
 import com.kuet.clubhub.data.SessionManager;
 import com.kuet.clubhub.databinding.ActivityEventDetailBinding;
+import com.kuet.clubhub.databinding.DialogFeedbackBinding;
 import com.kuet.clubhub.model.CheckIn;
 import com.kuet.clubhub.model.Event;
 import com.kuet.clubhub.model.EventType;
+import com.kuet.clubhub.model.FeedbackEntry;
 import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.provider.ScheduleClashChecker;
+import com.kuet.clubhub.ui.certificate.CertificateActivity;
+import com.kuet.clubhub.ui.feedback.FeedbackListActivity;
+import com.kuet.clubhub.ui.teams.TeamsActivity;
 import com.kuet.clubhub.ui.scan.ScanActivity;
 import com.kuet.clubhub.util.EventTypeStyle;
 import com.kuet.clubhub.util.TimeFormats;
@@ -45,6 +51,7 @@ public class EventDetailActivity extends BaseActivity {
     private Event current;
     private MyRegistration myReg;
     private CheckIn myCheckIn;
+    private FeedbackEntry myFeedback;
     private boolean busy = false;
     private ScheduleClashChecker.Clash clash;
     private boolean clashChecking = false;
@@ -52,6 +59,7 @@ public class EventDetailActivity extends BaseActivity {
     private ListenerRegistration eventRegistration;
     private ListenerRegistration myRegRegistration;
     private ListenerRegistration myCheckInRegistration;
+    private ListenerRegistration myFeedbackRegistration;
 
     /** The student scans the organizer's rotating code; the result is shown by the scanner itself. */
     private final ActivityResultLauncher<Intent> scanLauncher =
@@ -98,6 +106,24 @@ public class EventDetailActivity extends BaseActivity {
             intent.putExtra(ScanActivity.EXTRA_EVENT_ID, eventId);
             intent.putExtra(ScanActivity.EXTRA_EVENT_TITLE, current == null ? "" : current.getTitle());
             scanLauncher.launch(intent);
+        });
+        binding.btnTeams.setOnClickListener(v -> {
+            Intent intent = new Intent(this, TeamsActivity.class);
+            intent.putExtra(TeamsActivity.EXTRA_EVENT_ID, eventId);
+            startActivity(intent);
+        });
+        binding.btnFeedback.setOnClickListener(v -> showFeedbackDialog());
+        binding.btnCertificate.setOnClickListener(v -> {
+            Intent intent = new Intent(this, CertificateActivity.class);
+            intent.putExtra(CertificateActivity.EXTRA_EVENT_ID, eventId);
+            startActivity(intent);
+        });
+        binding.btnViewFeedback.setOnClickListener(v -> {
+            Intent intent = new Intent(this, FeedbackListActivity.class);
+            intent.putExtra(FeedbackListActivity.EXTRA_EVENT_ID, eventId);
+            intent.putExtra(FeedbackListActivity.EXTRA_EVENT_TITLE,
+                    current == null ? "" : current.getTitle());
+            startActivity(intent);
         });
         binding.btnEditEvent.setOnClickListener(v -> {
             Intent intent = new Intent(this, EventEditActivity.class);
@@ -158,6 +184,19 @@ public class EventDetailActivity extends BaseActivity {
                             // The status pill is a nicety; ignore (for example while offline).
                         }
                     });
+            myFeedbackRegistration = FeedbackRepository.listenMine(eventId, profile.getUid(),
+                    new FeedbackRepository.MyFeedbackListener() {
+                        @Override
+                        public void onChanged(FeedbackEntry entry) {
+                            myFeedback = entry;
+                            render();
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            // Rating is optional; ignore (for example while offline).
+                        }
+                    });
         }
     }
 
@@ -175,6 +214,10 @@ public class EventDetailActivity extends BaseActivity {
         if (myCheckInRegistration != null) {
             myCheckInRegistration.remove();
             myCheckInRegistration = null;
+        }
+        if (myFeedbackRegistration != null) {
+            myFeedbackRegistration.remove();
+            myFeedbackRegistration = null;
         }
     }
 
@@ -251,6 +294,9 @@ public class EventDetailActivity extends BaseActivity {
         binding.tvCheckedIn.setVisibility(View.GONE);
         binding.btnShowPass.setVisibility(View.GONE);
         binding.btnScanCheckin.setVisibility(View.GONE);
+        binding.btnTeams.setVisibility(View.GONE);
+        binding.btnFeedback.setVisibility(View.GONE);
+        binding.btnCertificate.setVisibility(View.GONE);
 
         if (profile.getRoleEnum() == Role.ADMIN) {
             return; // admins moderate; they do not register
@@ -261,9 +307,19 @@ public class EventDetailActivity extends BaseActivity {
         if (MyRegistration.REGISTERED.equals(status)) {
             binding.tvMyStatus.setVisibility(View.VISIBLE);
             binding.tvMyStatus.setText(R.string.my_status_registered);
+            if (e.typeEnum() == EventType.COMPETITION && e.getTeamSizeMax() > 0 && !e.hasEnded(now)) {
+                binding.btnTeams.setVisibility(View.VISIBLE);
+            }
             if (myCheckIn != null) {
                 // Present: the pass and the cancel button are no longer needed.
                 binding.tvCheckedIn.setVisibility(View.VISIBLE);
+                // Attendance is verified, so rating and (after the event) the certificate unlock.
+                binding.btnFeedback.setVisibility(View.VISIBLE);
+                binding.btnFeedback.setText(myFeedback == null ? getString(R.string.action_rate_event)
+                        : getString(R.string.action_edit_rating, myFeedback.getRating()));
+                if (e.hasEnded(now)) {
+                    binding.btnCertificate.setVisibility(View.VISIBLE);
+                }
             } else if (!e.hasEnded(now)) {
                 binding.btnShowPass.setVisibility(View.VISIBLE);
                 binding.btnScanCheckin.setVisibility(View.VISIBLE);
@@ -341,6 +397,45 @@ public class EventDetailActivity extends BaseActivity {
         binding.tvClash.setText(getString(R.string.clash_warning, clash.title,
                 TimeFormats.timeRange(new Date(clash.startMillis), new Date(clash.endMillis))));
         binding.tvClash.setVisibility(View.VISIBLE);
+    }
+
+    /** A 1 to 5 star rating and an optional comment; the rules accept it only after check-in. */
+    private void showFeedbackDialog() {
+        final DialogFeedbackBinding form = DialogFeedbackBinding.inflate(getLayoutInflater());
+        if (myFeedback != null) {
+            form.ratingBar.setRating(myFeedback.getRating());
+            form.etComment.setText(myFeedback.getComment());
+        }
+        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_feedback_title)
+                .setView(form.getRoot())
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.action_save, null)
+                .create();
+        dialog.setOnShowListener(d -> dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+                .setOnClickListener(v -> {
+                    int rating = Math.round(form.ratingBar.getRating());
+                    if (rating < 1) {
+                        Toast.makeText(this, R.string.error_rating_required, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    String comment = form.etComment.getText() == null ? ""
+                            : form.etComment.getText().toString().trim();
+                    dialog.dismiss();
+                    FeedbackRepository.save(eventId, profile, rating, comment, new Callback<Void>() {
+                        @Override
+                        public void onSuccess(Void result) {
+                            Snackbar.make(binding.getRoot(), R.string.msg_feedback_saved,
+                                    Snackbar.LENGTH_LONG).show();
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
+                        }
+                    });
+                }));
+        dialog.show();
     }
 
     private void register() {

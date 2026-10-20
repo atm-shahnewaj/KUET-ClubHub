@@ -324,6 +324,16 @@
         </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_verify_cert"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:minHeight="54dp"
+            android:text="@string/action_verify_certificate"
+            app:cornerRadius="16dp" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_logout"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="match_parent"
