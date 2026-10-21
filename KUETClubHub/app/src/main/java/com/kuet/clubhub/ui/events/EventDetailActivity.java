@@ -32,6 +32,7 @@ import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.provider.ScheduleClashChecker;
 import com.kuet.clubhub.ui.certificate.CertificateActivity;
 import com.kuet.clubhub.ui.feedback.FeedbackListActivity;
+import com.kuet.clubhub.ui.live.LiveActivity;
 import com.kuet.clubhub.ui.teams.TeamsActivity;
 import com.kuet.clubhub.ui.scan.ScanActivity;
 import com.kuet.clubhub.util.EventTypeStyle;
@@ -112,6 +113,14 @@ public class EventDetailActivity extends BaseActivity {
             intent.putExtra(TeamsActivity.EXTRA_EVENT_ID, eventId);
             startActivity(intent);
         });
+        // Polls and Q&A: the same screen for students and organizers (it adapts to the role).
+        View.OnClickListener openLive = v -> {
+            Intent intent = new Intent(this, LiveActivity.class);
+            intent.putExtra(LiveActivity.EXTRA_EVENT_ID, eventId);
+            startActivity(intent);
+        };
+        binding.btnLive.setOnClickListener(openLive);
+        binding.btnManageLive.setOnClickListener(openLive);
         binding.btnFeedback.setOnClickListener(v -> showFeedbackDialog());
         binding.btnCertificate.setOnClickListener(v -> {
             Intent intent = new Intent(this, CertificateActivity.class);
@@ -296,6 +305,7 @@ public class EventDetailActivity extends BaseActivity {
         binding.btnScanCheckin.setVisibility(View.GONE);
         binding.btnTeams.setVisibility(View.GONE);
         binding.btnFeedback.setVisibility(View.GONE);
+        binding.btnLive.setVisibility(View.GONE);
         binding.btnCertificate.setVisibility(View.GONE);
 
         if (profile.getRoleEnum() == Role.ADMIN) {
@@ -307,6 +317,8 @@ public class EventDetailActivity extends BaseActivity {
         if (MyRegistration.REGISTERED.equals(status)) {
             binding.tvMyStatus.setVisibility(View.VISIBLE);
             binding.tvMyStatus.setText(R.string.my_status_registered);
+            // Polls and Q&A are open to every registered student (voting itself needs a check-in).
+            binding.btnLive.setVisibility(View.VISIBLE);
             if (e.typeEnum() == EventType.COMPETITION && e.getTeamSizeMax() > 0 && !e.hasEnded(now)) {
                 binding.btnTeams.setVisibility(View.VISIBLE);
             }

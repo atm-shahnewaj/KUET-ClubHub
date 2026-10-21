@@ -409,6 +409,17 @@
                 app:cornerRadius="16dp" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_live"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:minHeight="54dp"
+                android:text="@string/action_live"
+                android:visibility="gone"
+                app:cornerRadius="16dp" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_feedback"
                 style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="match_parent"
@@ -492,6 +503,16 @@
                     android:layout_height="wrap_content"
                     android:minHeight="54dp"
                     android:text="@string/action_participants"
+                    app:cornerRadius="16dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_manage_live"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:minHeight="54dp"
+                    android:text="@string/action_live"
                     app:cornerRadius="16dp" />
 
                 <com.google.android.material.button.MaterialButton

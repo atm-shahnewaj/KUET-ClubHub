@@ -122,6 +122,9 @@
             android:name=".ui.certificate.CertificateActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.live.LiveActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.certificate.VerifyCertificateActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />

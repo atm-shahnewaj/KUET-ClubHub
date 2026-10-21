@@ -1,7 +1,7 @@
 rules_version = '2';
 
-// KUET ClubHub - rules for Weeks 1-5 (users, clubs, events, registrations, waiting list, check-ins,
-// club memberships, feedback, teams, certificates).
+// KUET ClubHub - rules for Weeks 1-6 (users, clubs, events, registrations, waiting list, check-ins,
+// club memberships, feedback, teams, certificates, live polls and Q&A).
 // Paste into Firebase Console -> Firestore Database -> Rules -> Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -325,6 +325,144 @@ service cloud.firestore {
                               && fb().updatedAt == request.time
                               && exists(checkinPath(eventId, uid));
         allow delete: if signedIn() && request.auth.uid == uid;
+      }
+
+      // ---- events/{eventId}/polls/{pollId}: live polls launched by the organizers.
+      // The running totals are kept on the poll as counts{"0": n, "1": n, ...} (key = option position).
+      // Students never edit a poll directly: a vote is a batch that creates their pollVotes document
+      // and adds exactly 1 to the chosen option, and the rules below insist on both together.
+      match /polls/{pollId} {
+        function isManager() {
+          return isAdmin() || request.auth.uid in get(eventPath(eventId)).data.organizers;
+        }
+        function newPoll() {
+          return request.resource.data;
+        }
+        function myVotePath() {
+          return /databases/$(database)/documents/events/$(eventId)/pollVotes/$(pollId + '_' + request.auth.uid);
+        }
+        // The option the student votes for, read from the vote document written in the same batch.
+        function votedOption() {
+          return getAfter(myVotePath()).data.option;
+        }
+
+        allow read: if signedIn();
+
+        allow create: if signedIn()
+                      && isManager()
+                      && newPoll().question is string
+                      && newPoll().question.size() >= 3
+                      && newPoll().question.size() <= 120
+                      && newPoll().options is list
+                      && newPoll().options.size() >= 2
+                      && newPoll().options.size() <= 6
+                      && newPoll().counts is map
+                      && newPoll().counts.size() == newPoll().options.size()
+                      && newPoll().counts.values().hasOnly([0])
+                      && newPoll().status == 'open'
+                      && newPoll().createdBy == request.auth.uid
+                      && newPoll().createdAt == request.time;
+
+        allow update: if signedIn() && (
+                      // an organizer closes or reopens voting (nothing else about the poll can change)
+                      (isManager()
+                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                       && request.resource.data.status in ['open', 'closed'])
+                      // a student's vote: only the totals change, only while the poll is open, only
+                      // together with a brand-new vote document, and only by +1 on that vote's option
+                      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['counts'])
+                          && resource.data.status == 'open'
+                          && !exists(myVotePath())
+                          && existsAfter(myVotePath())
+                          && request.resource.data.counts.diff(resource.data.counts).affectedKeys().hasOnly([votedOption()])
+                          && request.resource.data.counts[votedOption()] == resource.data.counts[votedOption()] + 1));
+
+        allow delete: if signedIn() && isManager();
+      }
+
+      // ---- events/{eventId}/pollVotes/{pollId_uid}: one document per student per poll.
+      // The id makes a second vote impossible, and it can never be changed or deleted, so a vote
+      // cannot be switched. Only a checked-in student (verified attendance) who is not an organizer
+      // of the event can vote, only while the poll is open.
+      match /pollVotes/{voteId} {
+        function vote() {
+          return request.resource.data;
+        }
+        function pollOfVote() {
+          return /databases/$(database)/documents/events/$(eventId)/polls/$(vote().pollId);
+        }
+
+        // A student reads only their own votes (to show "your vote" on the poll).
+        allow read: if signedIn() && resource.data.uid == request.auth.uid;
+
+        allow create: if signedIn()
+                      && vote().uid == request.auth.uid
+                      && vote().pollId is string
+                      && voteId == vote().pollId + '_' + request.auth.uid
+                      && vote().option is string
+                      && vote().votedAt == request.time
+                      && exists(checkinPath(eventId, request.auth.uid))
+                      && !(request.auth.uid in get(eventPath(eventId)).data.organizers)
+                      && get(pollOfVote()).data.status == 'open'
+                      && vote().option in get(pollOfVote()).data.counts.keys()
+                      && getAfter(pollOfVote()).data.counts[vote().option]
+                         == get(pollOfVote()).data.counts[vote().option] + 1;
+
+        allow update, delete: if false;
+      }
+
+      // ---- events/{eventId}/questions/{qId}: the live Q&A board.
+      // Asking and upvoting need verified attendance (a check-in record). Upvotes are a list of voter
+      // uids, so one student can upvote a question once and can take the upvote back.
+      match /questions/{qId} {
+        function isManager() {
+          return isAdmin() || request.auth.uid in get(eventPath(eventId)).data.organizers;
+        }
+        function newQuestion() {
+          return request.resource.data;
+        }
+        function isAttendee() {
+          return exists(checkinPath(eventId, request.auth.uid));
+        }
+
+        allow read: if signedIn();
+
+        allow create: if signedIn()
+                      && isAttendee()
+                      && newQuestion().authorUid == request.auth.uid
+                      && newQuestion().text is string
+                      && newQuestion().text.size() >= 5
+                      && newQuestion().text.size() <= 200
+                      && newQuestion().anonymous is bool
+                      // a named question carries the author's real name; an anonymous one carries none
+                      && ((newQuestion().anonymous == false
+                           && newQuestion().authorName == get(userPath(request.auth.uid)).data.name)
+                          || (newQuestion().anonymous == true && newQuestion().authorName == ''))
+                      && newQuestion().upvoterUids == []
+                      && newQuestion().answered == false
+                      && newQuestion().createdAt == request.time;
+
+        allow update: if signedIn() && (
+                      // an organizer marks the question answered, or puts it back in the queue
+                      (isManager()
+                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answered'])
+                       && request.resource.data.answered is bool)
+                      // a checked-in student adds their upvote (exactly one more, theirs)
+                      || (isAttendee()
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvoterUids'])
+                          && !(request.auth.uid in resource.data.upvoterUids)
+                          && request.auth.uid in request.resource.data.upvoterUids
+                          && request.resource.data.upvoterUids.size() == resource.data.upvoterUids.size() + 1
+                          && request.resource.data.upvoterUids.hasAll(resource.data.upvoterUids))
+                      // a student takes their upvote back (exactly one fewer, theirs)
+                      || (request.auth.uid in resource.data.upvoterUids
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvoterUids'])
+                          && !(request.auth.uid in request.resource.data.upvoterUids)
+                          && request.resource.data.upvoterUids.size() == resource.data.upvoterUids.size() - 1
+                          && resource.data.upvoterUids.hasAll(request.resource.data.upvoterUids)));
+
+        // The author removes their own question; organizers moderate any.
+        allow delete: if signedIn() && (resource.data.authorUid == request.auth.uid || isManager());
       }
 
       // ---- events/{eventId}/certIssued/{uid}: points to the student's certificate, created once
