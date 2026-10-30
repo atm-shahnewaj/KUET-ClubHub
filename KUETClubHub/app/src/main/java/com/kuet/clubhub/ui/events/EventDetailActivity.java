@@ -1,8 +1,11 @@
 package com.kuet.clubhub.ui.events;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.Toast;
 
@@ -20,6 +23,7 @@ import com.kuet.clubhub.data.CheckInRepository;
 import com.kuet.clubhub.data.EventRepository;
 import com.kuet.clubhub.data.FeedbackRepository;
 import com.kuet.clubhub.data.SessionManager;
+import com.kuet.clubhub.data.WeatherRepository;
 import com.kuet.clubhub.databinding.ActivityEventDetailBinding;
 import com.kuet.clubhub.databinding.DialogFeedbackBinding;
 import com.kuet.clubhub.model.CheckIn;
@@ -29,14 +33,18 @@ import com.kuet.clubhub.model.FeedbackEntry;
 import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.model.WeatherForecast;
 import com.kuet.clubhub.provider.ScheduleClashChecker;
 import com.kuet.clubhub.ui.certificate.CertificateActivity;
 import com.kuet.clubhub.ui.feedback.FeedbackListActivity;
 import com.kuet.clubhub.ui.live.LiveActivity;
-import com.kuet.clubhub.ui.teams.TeamsActivity;
 import com.kuet.clubhub.ui.scan.ScanActivity;
+import com.kuet.clubhub.ui.teams.TeamsActivity;
+import com.kuet.clubhub.util.CalendarHelper;
+import com.kuet.clubhub.util.CountdownText;
 import com.kuet.clubhub.util.EventTypeStyle;
 import com.kuet.clubhub.util.TimeFormats;
+import com.kuet.clubhub.util.WeatherParser;
 
 import java.util.Date;
 
@@ -57,10 +65,24 @@ public class EventDetailActivity extends BaseActivity {
     private ScheduleClashChecker.Clash clash;
     private boolean clashChecking = false;
 
+    /** Tracks which event date the weather forecast has already been requested for. */
+    private String weatherRequestedIso = "";
+
     private ListenerRegistration eventRegistration;
     private ListenerRegistration myRegRegistration;
     private ListenerRegistration myCheckInRegistration;
     private ListenerRegistration myFeedbackRegistration;
+
+    private final Handler countdownHandler = new Handler(Looper.getMainLooper());
+    private final Runnable countdownTicker = new Runnable() {
+        @Override
+        public void run() {
+            updateCountdown();
+            if (current != null && !current.hasEnded(System.currentTimeMillis())) {
+                countdownHandler.postDelayed(this, 1_000L);
+            }
+        }
+    };
 
     /** The student scans the organizer's rotating code; the result is shown by the scanner itself. */
     private final ActivityResultLauncher<Intent> scanLauncher =
@@ -69,6 +91,14 @@ public class EventDetailActivity extends BaseActivity {
                     Snackbar.make(binding.getRoot(), R.string.msg_checked_in, Snackbar.LENGTH_LONG).show();
                 }
             });
+
+    /**
+     * Requests READ_CALENDAR and WRITE_CALENDAR for direct CalendarContract insertion; if denied,
+     * CalendarHelper degrades gracefully by opening the calendar app's pre-filled insert screen.
+     */
+    private final ActivityResultLauncher<String[]> calendarPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
+                    result -> performAddToCalendar());
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -96,10 +126,23 @@ public class EventDetailActivity extends BaseActivity {
                     current == null ? "" : current.getTitle());
             startActivity(intent);
         });
+        binding.btnAnalytics.setOnClickListener(v -> {
+            Intent intent = new Intent(this, EventAnalyticsActivity.class);
+            intent.putExtra(EventAnalyticsActivity.EXTRA_EVENT_ID, eventId);
+            intent.putExtra(EventAnalyticsActivity.EXTRA_EVENT_TITLE,
+                    current == null ? "" : current.getTitle());
+            startActivity(intent);
+        });
         binding.btnShowPass.setOnClickListener(v -> {
             Intent intent = new Intent(this, EventPassActivity.class);
             intent.putExtra(EventPassActivity.EXTRA_EVENT_ID, eventId);
             startActivity(intent);
+        });
+        binding.btnAddCalendar.setOnClickListener(v -> onAddCalendarClicked());
+        binding.btnWeatherRetry.setOnClickListener(v -> {
+            if (current != null) {
+                loadWeather(current, true);
+            }
         });
         binding.btnScanCheckin.setOnClickListener(v -> {
             Intent intent = new Intent(this, ScanActivity.class);
@@ -132,6 +175,11 @@ public class EventDetailActivity extends BaseActivity {
             intent.putExtra(FeedbackListActivity.EXTRA_EVENT_ID, eventId);
             intent.putExtra(FeedbackListActivity.EXTRA_EVENT_TITLE,
                     current == null ? "" : current.getTitle());
+            startActivity(intent);
+        });
+        binding.btnCloneEvent.setOnClickListener(v -> {
+            Intent intent = new Intent(this, EventEditActivity.class);
+            intent.putExtra(EventEditActivity.EXTRA_CLONE_FROM_ID, eventId);
             startActivity(intent);
         });
         binding.btnEditEvent.setOnClickListener(v -> {
@@ -207,11 +255,13 @@ public class EventDetailActivity extends BaseActivity {
                         }
                     });
         }
+        startCountdownTicker();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        countdownHandler.removeCallbacks(countdownTicker);
         if (eventRegistration != null) {
             eventRegistration.remove();
             eventRegistration = null;
@@ -251,6 +301,9 @@ public class EventDetailActivity extends BaseActivity {
         binding.rowWaitlist.setVisibility(e.getWaitlistCount() > 0 ? View.VISIBLE : View.GONE);
         binding.tvWaitlist.setText(String.valueOf(e.getWaitlistCount()));
 
+        startCountdownTicker();
+        renderWeather(e);
+
         binding.tvDescription.setText(e.getDescription());
         if (e.getTags() != null && !e.getTags().isEmpty()) {
             StringBuilder sb = new StringBuilder();
@@ -269,6 +322,77 @@ public class EventDetailActivity extends BaseActivity {
 
         boolean manager = profile.getRoleEnum() == Role.ADMIN || e.hasOrganizer(profile.getUid());
         binding.managerBlock.setVisibility(manager ? View.VISIBLE : View.GONE);
+    }
+
+    private void startCountdownTicker() {
+        countdownHandler.removeCallbacks(countdownTicker);
+        updateCountdown();
+        if (current != null && !current.hasEnded(System.currentTimeMillis())) {
+            countdownHandler.postDelayed(countdownTicker, 1_000L);
+        }
+    }
+
+    private void updateCountdown() {
+        if (binding == null || current == null) {
+            return;
+        }
+        binding.tvCountdown.setText(CountdownText.formatDetail(
+                current.getStartTime(), current.getEndTime(), System.currentTimeMillis()));
+    }
+
+    private void renderWeather(Event e) {
+        if (e.getStartTime() == null || e.hasEnded(System.currentTimeMillis())) {
+            binding.cardWeather.setVisibility(View.GONE);
+            return;
+        }
+        binding.cardWeather.setVisibility(View.VISIBLE);
+        String iso = WeatherParser.isoDate(e.getStartTime());
+        if (!iso.equals(weatherRequestedIso)) {
+            weatherRequestedIso = iso;
+            loadWeather(e, false);
+        }
+    }
+
+    private void loadWeather(Event e, boolean forceRefresh) {
+        binding.weatherLoading.setVisibility(View.VISIBLE);
+        binding.weatherContent.setVisibility(View.GONE);
+        binding.weatherError.setVisibility(View.GONE);
+        binding.tvWeatherBadge.setVisibility(View.GONE);
+
+        WeatherRepository.fetchForDate(e.getStartTime(), forceRefresh,
+                new Callback<WeatherForecast>() {
+                    @Override
+                    public void onSuccess(WeatherForecast f) {
+                        if (isDestroyed() || binding == null) {
+                            return;
+                        }
+                        binding.weatherLoading.setVisibility(View.GONE);
+                        binding.weatherError.setVisibility(View.GONE);
+                        binding.weatherContent.setVisibility(View.VISIBLE);
+                        binding.tvWeatherBadge.setVisibility(View.VISIBLE);
+                        binding.tvWeatherBadge.setText(getString(R.string.weather_temp_badge,
+                                f.getTempMinC(), f.getTempMaxC()));
+                        binding.tvWeatherSummary.setText(getString(R.string.weather_summary_line,
+                                f.getCondition(), f.getTempMaxC(), f.getTempMinC()));
+                        String detail = getString(R.string.weather_detail_line,
+                                f.getRainChancePercent(), f.getWindMaxKmh());
+                        if (!f.isExactEventDate()) {
+                            detail = detail + "\n" + getString(R.string.weather_beyond_horizon_note);
+                        }
+                        binding.tvWeatherDetail.setText(detail);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        if (isDestroyed() || binding == null) {
+                            return;
+                        }
+                        binding.weatherLoading.setVisibility(View.GONE);
+                        binding.weatherContent.setVisibility(View.GONE);
+                        binding.weatherError.setVisibility(View.VISIBLE);
+                        binding.tvWeatherError.setText(message);
+                    }
+                });
     }
 
     private void renderCompetition(Event e) {
@@ -302,16 +426,21 @@ public class EventDetailActivity extends BaseActivity {
         binding.tvClosed.setVisibility(View.GONE);
         binding.tvCheckedIn.setVisibility(View.GONE);
         binding.btnShowPass.setVisibility(View.GONE);
+        binding.btnAddCalendar.setVisibility(View.GONE);
         binding.btnScanCheckin.setVisibility(View.GONE);
         binding.btnTeams.setVisibility(View.GONE);
         binding.btnFeedback.setVisibility(View.GONE);
         binding.btnLive.setVisibility(View.GONE);
         binding.btnCertificate.setVisibility(View.GONE);
 
+        long now = System.currentTimeMillis();
+        if (!e.hasEnded(now)) {
+            binding.btnAddCalendar.setVisibility(View.VISIBLE);
+        }
+
         if (profile.getRoleEnum() == Role.ADMIN) {
             return; // admins moderate; they do not register
         }
-        long now = System.currentTimeMillis();
         String status = myReg != null && myReg.isActive() ? myReg.getStatus() : null;
 
         if (MyRegistration.REGISTERED.equals(status)) {
@@ -363,6 +492,35 @@ public class EventDetailActivity extends BaseActivity {
     }
 
     // ------------------------------------------------------------------ actions
+
+    private void onAddCalendarClicked() {
+        if (current == null || current.getStartTime() == null) {
+            return;
+        }
+        if (CalendarHelper.hasCalendarPermission(this)) {
+            performAddToCalendar();
+        } else {
+            calendarPermissionLauncher.launch(new String[]{
+                    Manifest.permission.READ_CALENDAR,
+                    Manifest.permission.WRITE_CALENDAR
+            });
+        }
+    }
+
+    private void performAddToCalendar() {
+        if (current == null) {
+            return;
+        }
+        int result = CalendarHelper.addOrOpenCalendar(this, current);
+        if (result == CalendarHelper.RESULT_INSERTED_DIRECTLY) {
+            Snackbar.make(binding.getRoot(), R.string.msg_calendar_added, Snackbar.LENGTH_LONG).show();
+        } else if (result == CalendarHelper.RESULT_ALREADY_EXISTS) {
+            Snackbar.make(binding.getRoot(), R.string.msg_calendar_already_added,
+                    Snackbar.LENGTH_LONG).show();
+        } else if (result == CalendarHelper.RESULT_NO_CALENDAR_APP) {
+            Snackbar.make(binding.getRoot(), R.string.msg_no_calendar_app, Snackbar.LENGTH_LONG).show();
+        }
+    }
 
     /** Warns first if this event overlaps one the student is already registered for. */
     private void onRegisterClicked() {

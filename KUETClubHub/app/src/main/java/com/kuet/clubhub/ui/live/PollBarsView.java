@@ -22,10 +22,10 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * A hand-drawn horizontal bar chart for one poll (a custom View, drawn on a Canvas). Each option
- * gets a label with its vote count and percentage, and a rounded bar whose length is its share of
- * all votes. When new totals arrive the bars slide to their new length, so a live vote is easy to
- * see. The option the viewer voted for is drawn in bold with a tick.
+ * A hand-drawn horizontal bar chart for one poll or analytics breakdown (a custom View, drawn on
+ * a Canvas). Each row gets a label with its count and percentage, and a rounded bar whose length
+ * is its share of the total. When new totals arrive the bars slide to their new length, so a live
+ * update is easy to see. The option the viewer voted for (when >= 0) is drawn in bold with a tick.
  */
 public class PollBarsView extends View {
 
@@ -33,7 +33,8 @@ public class PollBarsView extends View {
     private long[] tally = new long[0];
     private long total = 0;
     private int myChoice = -1;
-    /** The poll currently drawn; bars animate only between two states of the same poll. */
+    private String unitLabel = "votes";
+    /** The item currently drawn; bars animate only between two states of the same key. */
     @Nullable
     private String pollKey;
 
@@ -82,12 +83,29 @@ public class PollBarsView extends View {
                 androidx.appcompat.R.attr.colorPrimary, 0xFF00873F));
     }
 
+    /** Optional spoken unit for TalkBack descriptions (defaults to "votes"). */
+    public void setUnitLabel(String unit) {
+        this.unitLabel = unit == null || unit.isEmpty() ? "votes" : unit;
+    }
+
     /**
-     * Shows a poll. key identifies the poll (its id), votes[i] is the votes of option i, and
-     * myChoice is the option the viewer voted for, or -1. If only the numbers of the same poll
-     * changed, the bars animate to the new lengths; a different poll is drawn straight away.
+     * Shows a bar breakdown where each bar's length is its share of the sum of {@code votes}.
      */
     public void setData(String key, List<String> optionLabels, long[] votes, int myChoice) {
+        long sum = 0;
+        for (long v : votes) {
+            sum += v;
+        }
+        setDataWithDenominator(key, optionLabels, votes, sum, myChoice);
+    }
+
+    /**
+     * Like {@link #setData(String, List, long[], int)}, but measures each bar against an explicit
+     * {@code denominator} (for example seat capacity or total registrations on the analytics
+     * overview card).
+     */
+    public void setDataWithDenominator(String key, List<String> optionLabels, long[] votes,
+                                       long denominator, int myChoice) {
         boolean sameShape = key != null && key.equals(pollKey)
                 && optionLabels.size() == labels.size() && votes.length == tally.length;
         pollKey = key;
@@ -95,11 +113,7 @@ public class PollBarsView extends View {
         labels.addAll(optionLabels);
         this.tally = votes.clone();
         this.myChoice = myChoice;
-        long sum = 0;
-        for (long v : votes) {
-            sum += v;
-        }
-        this.total = sum;
+        this.total = Math.max(0L, denominator);
 
         float[] target = new float[votes.length];
         for (int i = 0; i < votes.length; i++) {
@@ -139,8 +153,8 @@ public class PollBarsView extends View {
             if (i > 0) {
                 sb.append("; ");
             }
-            sb.append(labels.get(i)).append(": ").append(tally[i]).append(" votes, ")
-                    .append(PollMath.percent(tally[i], total)).append(" percent");
+            sb.append(labels.get(i)).append(": ").append(tally[i]).append(' ').append(unitLabel)
+                    .append(", ").append(PollMath.percent(tally[i], total)).append(" percent");
             if (i == myChoice) {
                 sb.append(", your vote");
             }

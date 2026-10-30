@@ -27,15 +27,14 @@ import com.kuet.clubhub.ui.scan.ScanActivity;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 /**
- * The organizer dashboard for one event: registrations, waiting list, seats and a live
- * attendance counter that updates as people check in.
+ * The organizer dashboard for one event: registrations, waiting list, seats, a live
+ * attendance counter that updates as people check in, plus analytics and CSV export.
  */
 public class EventDashboardActivity extends BaseActivity {
 
@@ -93,6 +92,17 @@ public class EventDashboardActivity extends BaseActivity {
             intent.putExtra(ScanActivity.EXTRA_EVENT_ID, eventId);
             intent.putExtra(ScanActivity.EXTRA_EVENT_TITLE, eventTitle);
             startActivity(intent);
+        });
+        binding.btnAnalytics.setOnClickListener(v -> {
+            Intent intent = new Intent(this, EventAnalyticsActivity.class);
+            intent.putExtra(EventAnalyticsActivity.EXTRA_EVENT_ID, eventId);
+            intent.putExtra(EventAnalyticsActivity.EXTRA_EVENT_TITLE, eventTitle);
+            startActivity(intent);
+        });
+        binding.btnExportCsv.setOnClickListener(v -> {
+            boolean ended = event != null && event.hasEnded(System.currentTimeMillis());
+            EventAnalyticsActivity.shareCsv(this, binding.getRoot(), eventId, eventTitle,
+                    new ArrayList<>(participants), ended);
         });
     }
 

@@ -8,6 +8,7 @@ import com.kuet.clubhub.data.local.ScheduledEventEntity;
 import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.notify.ReminderScheduler;
 import com.kuet.clubhub.util.Io;
+import com.kuet.clubhub.widget.NextEventWidgetProvider;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -15,8 +16,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Mirrors the student's registrations into Room (served by the ClubHubProvider) and keeps the
- * reminder alarms in step with them.
+ * Mirrors the student's registrations into Room (served by the ClubHubProvider and the home screen
+ * widget) and keeps the reminder alarms in step with them.
  */
 public final class ScheduleSync {
 
@@ -54,10 +55,11 @@ public final class ScheduleSync {
                     ReminderScheduler.cancel(app, old.eventId);
                 }
             }
+            NextEventWidgetProvider.refreshAll(app);
         });
     }
 
-    /** Called on logout: forget the schedule and every alarm and alert. */
+    /** Called on logout: forget the schedule and every alarm, alert and widget event. */
     public static void clearAll(Context context) {
         final Context app = context.getApplicationContext();
         Io.DISK.execute(() -> {
@@ -67,6 +69,7 @@ public final class ScheduleSync {
             }
             db.scheduleDao().deleteAll();
             db.alertDao().deleteAll();
+            NextEventWidgetProvider.refreshAll(app);
         });
     }
 }

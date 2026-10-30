@@ -4,4 +4,8 @@
     <files-path
         name="certificates"
         path="certificates/" />
+    <!-- CSV participant exports are written to files/exports and shared through FileProvider. -->
+    <files-path
+        name="exports"
+        path="exports/" />
 </paths>

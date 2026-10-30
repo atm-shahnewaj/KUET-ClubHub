@@ -28,6 +28,7 @@ import com.kuet.clubhub.data.ScheduleSync;
 import com.kuet.clubhub.data.SessionManager;
 import com.kuet.clubhub.data.UserRepository;
 import com.kuet.clubhub.data.local.AppDatabase;
+import com.kuet.clubhub.data.local.ScheduledEventEntity;
 import com.kuet.clubhub.databinding.ActivityMainBinding;
 import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.model.Role;
@@ -36,16 +37,25 @@ import com.kuet.clubhub.notify.AlertController;
 import com.kuet.clubhub.notify.AlertProcessor;
 import com.kuet.clubhub.ui.alerts.AlertsActivity;
 import com.kuet.clubhub.ui.clubs.ClubListFragment;
+import com.kuet.clubhub.ui.events.EventDetailActivity;
+import com.kuet.clubhub.ui.events.EventPassActivity;
 import com.kuet.clubhub.ui.events.EventsFragment;
 import com.kuet.clubhub.ui.events.MyEventsFragment;
 import com.kuet.clubhub.ui.profile.ProfileFragment;
+import com.kuet.clubhub.ui.scan.ScanActivity;
+import com.kuet.clubhub.util.Io;
 import com.kuet.clubhub.util.NotificationPrefs;
 import com.kuet.clubhub.util.ThemeManager;
+import com.kuet.clubhub.util.WidgetEventPicker;
 
 import java.util.List;
 
 /** Hosts the bottom navigation. The tabs shown depend on the signed-in user's role. */
 public class MainActivity extends BaseActivity {
+
+    public static final String ACTION_SHORTCUT_MY_PASS = "com.kuet.clubhub.action.SHORTCUT_MY_PASS";
+    public static final String ACTION_SHORTCUT_SCAN_QR = "com.kuet.clubhub.action.SHORTCUT_SCAN_QR";
+    public static final String ACTION_OPEN_EVENT = "com.kuet.clubhub.action.OPEN_EVENT";
 
     private ActivityMainBinding binding;
     private SessionManager session;
@@ -108,10 +118,71 @@ public class MainActivity extends BaseActivity {
             first.setChecked(true);
             showTab(first);
             askForNotificationPermission();
+            handleLaunchAction(getIntent());
         }
 
         NotificationPrefs.ensureBaseline(this);
         refreshRoleFromServer();
+    }
+
+    /** Handles app-icon shortcuts ("My ticket", "Scan QR") and taps on the home screen widget. */
+    private void handleLaunchAction(@Nullable Intent intent) {
+        if (intent == null || intent.getAction() == null) {
+            return;
+        }
+        final String action = intent.getAction();
+        if (ACTION_OPEN_EVENT.equals(action)) {
+            String eventId = intent.getStringExtra(EventDetailActivity.EXTRA_EVENT_ID);
+            if (eventId != null && !eventId.isEmpty()) {
+                Intent detail = new Intent(this, EventDetailActivity.class);
+                detail.putExtra(EventDetailActivity.EXTRA_EVENT_ID, eventId);
+                startActivity(detail);
+            }
+            return;
+        }
+        if (!ACTION_SHORTCUT_MY_PASS.equals(action) && !ACTION_SHORTCUT_SCAN_QR.equals(action)) {
+            return;
+        }
+        selectTabIfPresent(R.id.nav_my_events, R.id.nav_events);
+        final Context app = getApplicationContext();
+        Io.DISK.execute(() -> {
+            List<ScheduledEventEntity> rows = AppDatabase.getInstance(app).scheduleDao().getAll();
+            final ScheduledEventEntity next =
+                    WidgetEventPicker.pickNext(rows, System.currentTimeMillis());
+            runOnUiThread(() -> {
+                if (isDestroyed() || binding == null) {
+                    return;
+                }
+                if (next == null) {
+                    Snackbar.make(binding.getRoot(), R.string.msg_shortcut_no_upcoming,
+                            Snackbar.LENGTH_LONG).show();
+                    return;
+                }
+                if (ACTION_SHORTCUT_MY_PASS.equals(action)) {
+                    Intent pass = new Intent(MainActivity.this, EventPassActivity.class);
+                    pass.putExtra(EventPassActivity.EXTRA_EVENT_ID, next.eventId);
+                    startActivity(pass);
+                } else {
+                    Intent scan = new Intent(MainActivity.this, ScanActivity.class);
+                    scan.putExtra(ScanActivity.EXTRA_MODE, ScanActivity.MODE_STUDENT_CHECKIN);
+                    scan.putExtra(ScanActivity.EXTRA_EVENT_ID, next.eventId);
+                    scan.putExtra(ScanActivity.EXTRA_EVENT_TITLE,
+                            next.title == null ? "" : next.title);
+                    startActivity(scan);
+                }
+            });
+        });
+    }
+
+    private void selectTabIfPresent(int preferredId, int fallbackId) {
+        MenuItem item = binding.bottomNav.getMenu().findItem(preferredId);
+        if (item == null) {
+            item = binding.bottomNav.getMenu().findItem(fallbackId);
+        }
+        if (item != null) {
+            item.setChecked(true);
+            showTab(item);
+        }
     }
 
     @Override

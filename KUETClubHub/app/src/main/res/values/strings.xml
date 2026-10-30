@@ -106,6 +106,7 @@
     <string name="title_event">Event</string>
     <string name="title_new_event">New event</string>
     <string name="title_edit_event">Edit event</string>
+    <string name="title_clone_event">Clone event</string>
     <string name="title_participants">Participants</string>
     <string name="view_list">List</string>
     <string name="view_calendar">Calendar</string>
@@ -135,6 +136,7 @@
     <string name="label_venue">Venue</string>
     <string name="label_seats">Seats</string>
     <string name="label_waitlist">Waiting</string>
+    <string name="label_countdown">Countdown</string>
     <string name="label_competition">Competition</string>
     <string name="label_deadline">Deadline</string>
     <string name="label_team_size">Team size</string>
@@ -149,6 +151,7 @@
     <string name="action_leave_waitlist">Leave waiting list</string>
     <string name="action_participants">Open dashboard</string>
     <string name="action_edit_event">Edit event</string>
+    <string name="action_clone_event">Clone event</string>
     <string name="action_keep">Keep it</string>
     <string name="action_confirm">Yes, cancel</string>
     <string name="my_status_registered">You are registered</string>
@@ -157,6 +160,7 @@
     <string name="msg_waitlisted">The event is full, so you are on the waiting list. If a seat opens, you will be promoted automatically.</string>
     <string name="msg_cancelled">Cancelled.</string>
     <string name="msg_event_missing">This event no longer exists.</string>
+    <string name="msg_clone_pick_dates">Event details copied. Pick the new date before saving.</string>
     <string name="dialog_cancel_registration_title">Cancel registration?</string>
     <string name="dialog_cancel_registration_message">Your seat will be given to the next person on the waiting list.</string>
     <string name="dialog_leave_waitlist_title">Leave the waiting list?</string>
@@ -550,4 +554,50 @@
     <string name="msg_vote_saved">Vote recorded.</string>
     <string name="msg_poll_launched">Poll launched. Students see it right away.</string>
     <string name="msg_question_posted">Question posted.</string>
+
+    <!-- ================= Week 6 (part 2): analytics, CSV, calendar, weather, widget, shortcuts ================= -->
+    <string name="title_analytics">Analytics</string>
+    <string name="action_analytics">Analytics</string>
+    <string name="action_analytics_export">Analytics &amp; CSV export</string>
+    <string name="action_export_csv">Export CSV</string>
+    <string name="action_export_csv_full">Export participant list (CSV)</string>
+    <string name="analytics_subtitle">%1$d registered · %2$d checked in · %3$d waiting</string>
+    <string name="analytics_card_overview">Attendance vs. registration</string>
+    <string name="analytics_rates_summary">%1$d%% seats filled · %2$d%% attendance rate</string>
+    <string name="analytics_label_no_shows">No-shows</string>
+    <string name="analytics_label_not_yet">Not yet here</string>
+    <string name="analytics_card_timeline">Registrations over time</string>
+    <string name="analytics_timeline_hint">Daily sign-ups based on registration time.</string>
+    <string name="empty_analytics_timeline">No registrations yet.</string>
+    <string name="analytics_card_departments">Department breakdown</string>
+    <string name="analytics_departments_hint">Active registrations and waiting list by department.</string>
+    <string name="empty_analytics_departments">No department data yet.</string>
+    <string name="csv_share_subject">Participants - %1$s</string>
+    <string name="msg_csv_empty">Nobody has registered for this event yet.</string>
+    <string name="msg_csv_failed">Could not write the CSV file on this phone.</string>
+
+    <string name="action_add_calendar">Add to phone calendar</string>
+    <string name="msg_calendar_added">Added to your phone calendar.</string>
+    <string name="msg_calendar_already_added">This event is already in your phone calendar.</string>
+    <string name="msg_no_calendar_app">No calendar app found on this phone.</string>
+
+    <string name="label_weather">Campus weather (KUET)</string>
+    <string name="weather_loading">Loading forecast for KUET campus…</string>
+    <string name="weather_temp_badge">%1$d° – %2$d°C</string>
+    <string name="weather_summary_line">%1$s · High %2$d°C, low %3$d°C</string>
+    <string name="weather_detail_line">Rain chance: %1$d%% · Max wind: %2$d km/h (Khulna)</string>
+    <string name="weather_beyond_horizon_note">Showing today\u2019s campus weather (event is more than 16 days away).</string>
+    <string name="action_retry">Try again</string>
+
+    <string name="widget_title">Next registered event</string>
+    <string name="widget_description">Shows your next registered KUET ClubHub event with a countdown.</string>
+    <string name="widget_header">KUET ClubHub · Next event</string>
+    <string name="widget_empty_title">No upcoming registered events</string>
+    <string name="widget_empty_subtitle">Tap to browse campus events and register</string>
+
+    <string name="shortcut_pass_short">My ticket</string>
+    <string name="shortcut_pass_long">Show my next event pass</string>
+    <string name="shortcut_scan_short">Scan QR</string>
+    <string name="shortcut_scan_long">Scan event check-in QR</string>
+    <string name="msg_shortcut_no_upcoming">You have no upcoming registered events right now.</string>
 </resources>

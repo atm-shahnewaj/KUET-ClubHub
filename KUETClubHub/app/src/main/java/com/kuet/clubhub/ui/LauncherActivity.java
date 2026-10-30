@@ -1,5 +1,6 @@
 package com.kuet.clubhub.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -15,6 +16,7 @@ import com.kuet.clubhub.data.UserRepository;
 import com.kuet.clubhub.databinding.ActivityLauncherBinding;
 import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.ui.auth.LoginActivity;
+import com.kuet.clubhub.ui.events.EventDetailActivity;
 
 /** Entry point: decides between Login and Main depending on the saved session. */
 public class LauncherActivity extends BaseActivity {
@@ -38,7 +40,7 @@ public class LauncherActivity extends BaseActivity {
 
         SessionManager session = new SessionManager(this);
         if (session.getCachedProfile(user.getUid()) != null) {
-            startClearTask(MainActivity.class);
+            openMain();
             return;
         }
 
@@ -47,7 +49,7 @@ public class LauncherActivity extends BaseActivity {
             @Override
             public void onSuccess(UserProfile result) {
                 session.save(result);
-                startClearTask(MainActivity.class);
+                openMain();
             }
 
             @Override
@@ -58,5 +60,23 @@ public class LauncherActivity extends BaseActivity {
                 startClearTask(LoginActivity.class);
             }
         });
+    }
+
+    /** Forwards any launcher shortcut or home-screen widget action to MainActivity. */
+    private void openMain() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        Intent incoming = getIntent();
+        if (incoming != null) {
+            if (incoming.getAction() != null) {
+                intent.setAction(incoming.getAction());
+            }
+            String eventId = incoming.getStringExtra(EventDetailActivity.EXTRA_EVENT_ID);
+            if (eventId != null) {
+                intent.putExtra(EventDetailActivity.EXTRA_EVENT_ID, eventId);
+            }
+        }
+        startActivity(intent);
+        finish();
     }
 }

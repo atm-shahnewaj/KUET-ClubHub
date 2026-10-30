@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
     <!-- The camera is only needed for QR check-in; phones without one can still install the app. -->
     <uses-feature
@@ -40,6 +42,9 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <activity
@@ -65,6 +70,9 @@
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ui.events.EventDashboardActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.events.EventAnalyticsActivity"
             android:exported="false" />
         <activity
             android:name=".ui.events.EventCheckInActivity"
@@ -95,6 +103,19 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
+        </receiver>
+
+        <!-- Home screen widget showing the student's next registered event with a countdown. -->
+        <receiver
+            android:name=".widget.NextEventWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/next_event_widget_info" />
         </receiver>
 
         <service
@@ -141,7 +162,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- Shares generated PDF certificates (files/certificates) with PDF viewers and chat apps. -->
+        <!-- Shares generated PDF certificates and CSV exports with external apps. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="com.kuet.clubhub.fileprovider"

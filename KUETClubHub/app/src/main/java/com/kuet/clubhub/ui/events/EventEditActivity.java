@@ -37,10 +37,14 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.TimeZone;
 
-/** Creates an event (no extra) or edits one (EXTRA_EVENT_ID). Organizers of the club and admins only. */
+/**
+ * Creates an event (no extra), clones an existing one with new dates ({@link #EXTRA_CLONE_FROM_ID}),
+ * or edits one ({@link #EXTRA_EVENT_ID}). Organizers of the club and admins only.
+ */
 public class EventEditActivity extends BaseActivity {
 
     public static final String EXTRA_EVENT_ID = "event_id";
+    public static final String EXTRA_CLONE_FROM_ID = "clone_from_id";
 
     private static final String S_CLUB_ID = "s_club_id";
     private static final String S_CLUB_NAME = "s_club_name";
@@ -58,6 +62,7 @@ public class EventEditActivity extends BaseActivity {
     private ClubRepository clubs;
     private UserProfile profile;
     private String eventId;
+    private String cloneFromId;
 
     private String clubId;
     private String clubName;
@@ -85,9 +90,12 @@ public class EventEditActivity extends BaseActivity {
         events = EventRepository.getInstance(this);
         clubs = ClubRepository.getInstance(this);
         eventId = getIntent().getStringExtra(EXTRA_EVENT_ID);
+        cloneFromId = getIntent().getStringExtra(EXTRA_CLONE_FROM_ID);
         boolean editing = eventId != null;
+        boolean cloning = !editing && cloneFromId != null;
 
-        binding.toolbar.setTitle(editing ? R.string.title_edit_event : R.string.title_new_event);
+        binding.toolbar.setTitle(editing ? R.string.title_edit_event
+                : cloning ? R.string.title_clone_event : R.string.title_new_event);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
         if (savedInstanceState != null) {
@@ -110,9 +118,15 @@ public class EventEditActivity extends BaseActivity {
             binding.tilClub.setEnabled(false);
             binding.btnSave.setEnabled(false);
             if (savedInstanceState == null) {
-                loadForEdit();
+                loadForEdit(eventId, false);
             } else {
                 binding.btnSave.setEnabled(true);
+            }
+        } else if (cloning) {
+            loadClubs(false);
+            if (savedInstanceState == null) {
+                binding.btnSave.setEnabled(false);
+                loadForEdit(cloneFromId, true);
             }
         } else {
             loadClubs(savedInstanceState == null);
@@ -156,15 +170,15 @@ public class EventEditActivity extends BaseActivity {
                 });
     }
 
-    private void loadForEdit() {
-        events.loadEvent(eventId, new Callback<Event>() {
+    private void loadForEdit(String sourceId, boolean asClone) {
+        events.loadEvent(sourceId, new Callback<Event>() {
             @Override
             public void onSuccess(Event e) {
                 clubId = e.getClubId();
                 clubName = e.getClubName();
                 clubOrganizers = new ArrayList<>(
                         e.getOrganizers() == null ? new ArrayList<String>() : e.getOrganizers());
-                currentRegistered = e.getRegisteredCount();
+                currentRegistered = asClone ? 0 : e.getRegisteredCount();
 
                 binding.etClub.setText(clubName);
                 binding.etTitle.setText(e.getTitle());
@@ -180,14 +194,23 @@ public class EventEditActivity extends BaseActivity {
                 binding.etTeamMax.setText(e.getTeamSizeMax() > 0 ? String.valueOf(e.getTeamSizeMax()) : "");
 
                 if (e.getStartTime() != null) {
-                    dateMillis = midnightOf(e.getStartTime().getTime());
                     startMinutes = minutesOfDay(e.getStartTime());
+                    if (!asClone) {
+                        dateMillis = midnightOf(e.getStartTime().getTime());
+                    }
                 }
                 if (e.getEndTime() != null) {
                     endMinutes = minutesOfDay(e.getEndTime());
                 }
-                deadlineMillis = e.getRegistrationDeadline() == null
-                        ? 0 : midnightOf(e.getRegistrationDeadline().getTime());
+                if (!asClone) {
+                    deadlineMillis = e.getRegistrationDeadline() == null
+                            ? 0 : midnightOf(e.getRegistrationDeadline().getTime());
+                } else {
+                    dateMillis = 0;
+                    deadlineMillis = 0;
+                    Snackbar.make(binding.getRoot(), R.string.msg_clone_pick_dates,
+                            Snackbar.LENGTH_LONG).show();
+                }
 
                 refreshDateTimeFields();
                 updateCompetitionVisibility();
