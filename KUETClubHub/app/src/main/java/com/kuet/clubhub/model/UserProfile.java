@@ -16,6 +16,7 @@ public class UserProfile {
     private String role = Role.STUDENT.getValue();
     private int year;
     private long points;
+    private String photoBase64;
     private List<String> skills = new ArrayList<>();
     private List<String> interests = new ArrayList<>();
 
@@ -46,6 +47,9 @@ public class UserProfile {
 
     public long getPoints() { return points; }
     public void setPoints(long points) { this.points = points; }
+
+    public String getPhotoBase64() { return photoBase64; }
+    public void setPhotoBase64(String photoBase64) { this.photoBase64 = photoBase64; }
 
     public List<String> getSkills() { return skills; }
     public void setSkills(List<String> skills) { this.skills = skills; }

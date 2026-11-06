@@ -60,6 +60,7 @@ public class ClubListFragment extends Fragment {
     private int mode;
 
     private final List<Club> allClubs = new ArrayList<>();
+    private final List<Club> cachedDirectoryClubs = new ArrayList<>();
     private String query = "";
     private String category = null; // null = "All"
     private boolean loaded = false;
@@ -97,29 +98,81 @@ public class ClubListFragment extends Fragment {
         binding.fabNewClub.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), ClubEditActivity.class)));
 
-        if (mode == MODE_ALL) {
-            String fullName = profile == null || profile.getName() == null
-                    ? "" : profile.getName().trim();
-            String firstName = fullName.isEmpty() ? "" : fullName.split("\\s+")[0];
-            binding.tvGreeting.setText(firstName.isEmpty()
-                    ? getString(R.string.title_clubs)
-                    : getString(R.string.greeting_hello, firstName));
-            setupSearchAndChips();
-            // Room is the single source of truth for the directory.
-            repository.observeCachedClubs().observe(getViewLifecycleOwner(), this::onCacheChanged);
-        } else {
-            binding.greetingBlock.setVisibility(View.GONE);
-            binding.tilSearch.setVisibility(View.GONE);
-            binding.chipScroll.setVisibility(View.GONE);
+        String fullName = profile == null || profile.getName() == null
+                ? "" : profile.getName().trim();
+        String firstName = fullName.isEmpty() ? "" : fullName.split("\\s+")[0];
+        binding.tvGreeting.setText(firstName.isEmpty()
+                ? getString(R.string.title_clubs)
+                : getString(R.string.greeting_hello, firstName));
+        setupSearchAndChips();
+
+        // Observe Room cache for the directory mode
+        repository.observeCachedClubs().observe(getViewLifecycleOwner(), entities -> {
+            cachedDirectoryClubs.clear();
+            for (ClubEntity e : entities) {
+                cachedDirectoryClubs.add(e.toClub());
+            }
+            if (mode == MODE_ALL) {
+                allClubs.clear();
+                allClubs.addAll(cachedDirectoryClubs);
+                render();
+            }
+        });
+
+        if (profile != null && profile.getRoleEnum() != Role.STUDENT) {
+            binding.toggleClubScope.setVisibility(View.VISIBLE);
+            binding.btnScopeSecondary.setText(profile.getRoleEnum() == Role.ADMIN
+                    ? R.string.title_pending : R.string.title_my_clubs);
+            binding.toggleClubScope.check(mode == MODE_ALL ? R.id.btn_scope_all : R.id.btn_scope_secondary);
+            binding.toggleClubScope.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked) return;
+                mode = checkedId == R.id.btn_scope_all ? MODE_ALL
+                        : (profile.getRoleEnum() == Role.ADMIN ? MODE_PENDING : MODE_MINE);
+                updateModeVisibility();
+                if (registration != null) {
+                    registration.remove();
+                    registration = null;
+                }
+                if (mode == MODE_ALL) {
+                    allClubs.clear();
+                    allClubs.addAll(cachedDirectoryClubs);
+                } else {
+                    allClubs.clear();
+                    loaded = false;
+                }
+                startModeListener();
+                render();
+            });
         }
+
+        updateModeVisibility();
         render();
+    }
+
+    private void updateModeVisibility() {
+        if (binding == null) return;
+        boolean isAll = (mode == MODE_ALL);
+        binding.greetingBlock.setVisibility(isAll ? View.VISIBLE : View.GONE);
+        binding.tilSearch.setVisibility(isAll ? View.VISIBLE : View.GONE);
+        binding.chipScroll.setVisibility(isAll ? View.VISIBLE : View.GONE);
+        boolean canCreate = profile != null && profile.getRoleEnum() != Role.STUDENT
+                && mode != MODE_PENDING;
+        binding.fabNewClub.setVisibility(canCreate ? View.VISIBLE : View.GONE);
     }
 
     @Override
     public void onStart() {
         super.onStart();
+        startModeListener();
+    }
+
+    private void startModeListener() {
         if (profile == null) {
             return;
+        }
+        if (registration != null) {
+            registration.remove();
+            registration = null;
         }
         if (mode == MODE_ALL) {
             registration = repository.startSync(new ClubRepository.SyncListener() {
@@ -225,16 +278,6 @@ public class ClubListFragment extends Fragment {
         binding.chipGroup.addView(chip);
     }
 
-    // ------------------------------------------------------------------ data
-
-    private void onCacheChanged(List<ClubEntity> entities) {
-        allClubs.clear();
-        for (ClubEntity e : entities) {
-            allClubs.add(e.toClub());
-        }
-        render();
-    }
-
     private void openClub(Club club) {
         Intent intent = new Intent(requireContext(), ClubDetailActivity.class);
         intent.putExtra(ClubDetailActivity.EXTRA_CLUB_ID, club.getId());
@@ -245,10 +288,11 @@ public class ClubListFragment extends Fragment {
         if (binding == null) {
             return;
         }
-        String q = query.trim().toLowerCase(Locale.ROOT);
+        String q = mode == MODE_ALL ? query.trim().toLowerCase(Locale.ROOT) : "";
+        String cat = mode == MODE_ALL ? category : null;
         List<Club> filtered = new ArrayList<>();
         for (Club c : allClubs) {
-            if (category != null && !category.equals(c.getCategory())) {
+            if (cat != null && !cat.equals(c.getCategory())) {
                 continue;
             }
             if (!q.isEmpty() && !matches(c, q)) {
@@ -276,7 +320,7 @@ public class ClubListFragment extends Fragment {
     }
 
     private int emptyMessage() {
-        boolean filtering = !query.trim().isEmpty() || category != null;
+        boolean filtering = mode == MODE_ALL && (!query.trim().isEmpty() || category != null);
         if (filtering && !allClubs.isEmpty()) {
             return R.string.empty_clubs_filtered;
         }

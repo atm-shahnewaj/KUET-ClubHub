@@ -27,6 +27,7 @@ import androidx.camera.mlkit.vision.MlKitAnalyzer;
 import androidx.camera.view.CameraController;
 import androidx.camera.view.LifecycleCameraController;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
 
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions;
@@ -113,7 +114,8 @@ public class ScanActivity extends BaseActivity {
         binding = ActivityScanBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         applyInsets(binding.getRoot());
-        useWhiteStatusBarIcons();
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(false);
 
         mode = getIntent().getStringExtra(EXTRA_MODE);
         eventId = getIntent().getStringExtra(EXTRA_EVENT_ID);

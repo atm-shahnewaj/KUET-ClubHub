@@ -85,6 +85,8 @@ public class ProfileFragment extends Fragment {
         String name = p.getName() == null ? "" : p.getName();
         binding.tvAvatar.setText(name.isEmpty() ? "?"
                 : name.substring(0, 1).toUpperCase(Locale.ROOT));
+        com.kuet.clubhub.util.ImageHelper.bindUserAvatar(binding.ivAvatar, binding.tvAvatar, p.getPhotoBase64(), name);
+        binding.cardProfileAvatar.setOnClickListener(v -> startActivity(new Intent(requireContext(), EditProfileActivity.class)));
         binding.tvName.setText(name);
         binding.tvRole.setText(p.getRoleEnum().getLabel());
         binding.tvEmail.setText(p.getEmail());

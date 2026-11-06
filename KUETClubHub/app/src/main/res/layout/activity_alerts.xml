@@ -3,16 +3,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
+    android:background="@drawable/bg_screen_mint"
     android:orientation="vertical">
 
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_header_gradient"
         android:orientation="vertical"
-        android:paddingBottom="36dp">
+        android:paddingBottom="4dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
@@ -20,25 +19,25 @@
             android:layout_height="?attr/actionBarSize"
             android:background="@android:color/transparent"
             app:navigationIcon="@drawable/ic_arrow_back_white"
+            app:navigationIconTint="?attr/colorOnSurface"
             app:title="@string/title_alerts"
             app:titleTextAppearance="?attr/textAppearanceTitleLarge"
-            app:titleTextColor="@color/white" />
+            app:titleTextColor="?attr/colorOnSurface" />
     </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="-28dp"
-        android:layout_weight="1"
-        android:background="@drawable/bg_sheet_top">
+        android:layout_weight="1">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingTop="20dp"
-            android:paddingBottom="20dp" />
+            android:paddingHorizontal="4dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="24dp" />
 
         <LinearLayout
             android:id="@+id/empty_container"

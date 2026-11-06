@@ -10,6 +10,7 @@ public class Club {
     private String name;
     private String category;
     private String description;
+    private String logoBase64;
     private List<String> organizers = new ArrayList<>();
     private long memberCount;
     private boolean approved;
@@ -29,6 +30,9 @@ public class Club {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getLogoBase64() { return logoBase64; }
+    public void setLogoBase64(String logoBase64) { this.logoBase64 = logoBase64; }
 
     public List<String> getOrganizers() { return organizers; }
     public void setOrganizers(List<String> organizers) { this.organizers = organizers; }

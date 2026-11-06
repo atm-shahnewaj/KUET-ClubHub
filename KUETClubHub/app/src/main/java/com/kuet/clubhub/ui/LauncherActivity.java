@@ -16,9 +16,10 @@ import com.kuet.clubhub.data.UserRepository;
 import com.kuet.clubhub.databinding.ActivityLauncherBinding;
 import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.ui.auth.LoginActivity;
+import com.kuet.clubhub.ui.auth.RegisterActivity;
 import com.kuet.clubhub.ui.events.EventDetailActivity;
 
-/** Entry point: decides between Login and Main depending on the saved session. */
+/** Entry point: decides between Login, Google Profile Completion, and Main depending on the saved session. */
 public class LauncherActivity extends BaseActivity {
 
     @Override
@@ -54,6 +55,14 @@ public class LauncherActivity extends BaseActivity {
 
             @Override
             public void onError(String message) {
+                if (UserRepository.ERR_NO_PROFILE.equals(message)) {
+                    Intent setup = new Intent(LauncherActivity.this, RegisterActivity.class);
+                    setup.putExtra(RegisterActivity.EXTRA_GOOGLE_MODE, true);
+                    setup.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(setup);
+                    finish();
+                    return;
+                }
                 FirebaseAuth.getInstance().signOut();
                 Toast.makeText(LauncherActivity.this,
                         R.string.msg_profile_load_failed, Toast.LENGTH_LONG).show();

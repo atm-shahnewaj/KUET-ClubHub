@@ -2,7 +2,6 @@ package com.kuet.clubhub.data;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-
 import android.text.TextUtils;
 
 import com.kuet.clubhub.model.UserProfile;
@@ -25,6 +24,7 @@ public class SessionManager {
     private static final String K_EMAIL = "email";
     private static final String K_ROLE = "role";
     private static final String K_YEAR = "year";
+    private static final String K_PHOTO = "photo_base64";
     private static final String K_SKILLS = "skills";
     private static final String K_INTERESTS = "interests";
 
@@ -43,12 +43,12 @@ public class SessionManager {
                 .putString(K_EMAIL, p.getEmail())
                 .putString(K_ROLE, p.getRole())
                 .putInt(K_YEAR, p.getYear())
+                .putString(K_PHOTO, p.getPhotoBase64())
                 .putString(K_SKILLS, join(p.getSkills()))
                 .putString(K_INTERESTS, join(p.getInterests()))
                 .apply();
     }
 
-    /** Returns the cached profile only if it belongs to the given uid. */
     public UserProfile getCachedProfile(String uid) {
         String saved = prefs.getString(K_UID, null);
         if (saved == null || !saved.equals(uid)) {
@@ -57,7 +57,6 @@ public class SessionManager {
         return build(saved);
     }
 
-    /** Returns the cached profile, or null if nobody is cached. */
     public UserProfile getProfile() {
         String saved = prefs.getString(K_UID, null);
         return saved == null ? null : build(saved);
@@ -76,6 +75,7 @@ public class SessionManager {
         p.setEmail(prefs.getString(K_EMAIL, ""));
         p.setRole(prefs.getString(K_ROLE, "student"));
         p.setYear(prefs.getInt(K_YEAR, 0));
+        p.setPhotoBase64(prefs.getString(K_PHOTO, null));
         p.setSkills(split(prefs.getString(K_SKILLS, "")));
         p.setInterests(split(prefs.getString(K_INTERESTS, "")));
         return p;

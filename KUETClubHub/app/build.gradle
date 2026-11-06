@@ -14,7 +14,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = '0.6.0-week6'
+        versionName = '0.7.0-gmail-rtdb'
     }
 
     compileOptions {
@@ -54,6 +54,7 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:34.17.0')
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.firebase:firebase-database'
 
     // Local unit tests (the team matcher)
     testImplementation 'junit:junit:4.13.2'

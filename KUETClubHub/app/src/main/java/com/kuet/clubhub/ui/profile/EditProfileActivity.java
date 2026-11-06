@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 
 import com.google.android.material.chip.Chip;
@@ -17,7 +19,9 @@ import com.kuet.clubhub.data.UserRepository;
 import com.kuet.clubhub.databinding.ActivityEditProfileBinding;
 import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.notify.AlertController;
+import com.kuet.clubhub.util.ImageHelper;
 import com.kuet.clubhub.util.Interests;
+import com.kuet.clubhub.util.Io;
 import com.kuet.clubhub.util.NotificationPrefs;
 import com.kuet.clubhub.util.PickerUtil;
 import com.kuet.clubhub.util.Years;
@@ -28,15 +32,31 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Edit name, department, year, interest tags and skills. */
+/** Edit profile picture, name, department, year, interest tags and skills. */
 public class EditProfileActivity extends BaseActivity {
 
     private static final int CHIP_ID_BASE = 3000;
     private static final int MAX_TAGS = 15;
+    private static final String S_PHOTO = "s_photo";
 
     private ActivityEditProfileBinding binding;
     private SessionManager session;
     private UserProfile profile;
+    private String photoBase64;
+
+    private final ActivityResultLauncher<String> pickPhotoLauncher =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri == null) return;
+                Io.DISK.execute(() -> {
+                    String encoded = ImageHelper.encodeUriToBase64(this, uri, 256, 256, 80);
+                    runOnUiThread(() -> {
+                        if (encoded != null && binding != null) {
+                            photoBase64 = encoded;
+                            ImageHelper.bindUserAvatar(binding.ivProfilePhoto, null, photoBase64, profile.getName());
+                        }
+                    });
+                });
+            });
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -53,6 +73,15 @@ public class EditProfileActivity extends BaseActivity {
             return;
         }
         binding.toolbar.setNavigationOnClickListener(v -> finish());
+
+        photoBase64 = savedInstanceState != null
+                ? savedInstanceState.getString(S_PHOTO, profile.getPhotoBase64())
+                : profile.getPhotoBase64();
+        ImageHelper.bindUserAvatar(binding.ivProfilePhoto, null, photoBase64, profile.getName());
+
+        View.OnClickListener pickPhoto = v -> pickPhotoLauncher.launch("image/*");
+        binding.cardPickPhoto.setOnClickListener(pickPhoto);
+        binding.btnChangePhoto.setOnClickListener(pickPhoto);
 
         List<String> mine = profile.getInterests() == null
                 ? new ArrayList<String>() : profile.getInterests();
@@ -87,6 +116,12 @@ public class EditProfileActivity extends BaseActivity {
         binding.tilYear.setEndIconOnClickListener(pickYear);
 
         binding.btnSave.setOnClickListener(v -> save());
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(S_PHOTO, photoBase64);
     }
 
     private void save() {
@@ -131,7 +166,7 @@ public class EditProfileActivity extends BaseActivity {
 
         setLoading(true);
         UserRepository.updateProfile(profile.getUid(), name, department, year, skills, interests,
-                new Callback<Void>() {
+                photoBase64, new Callback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
                         profile.setName(name);
@@ -139,9 +174,9 @@ public class EditProfileActivity extends BaseActivity {
                         profile.setYear(year);
                         profile.setSkills(skills);
                         profile.setInterests(interests);
+                        profile.setPhotoBase64(photoBase64);
                         session.save(profile);
                         if (interestsChanged) {
-                            // New interests should not trigger alerts for events posted earlier.
                             NotificationPrefs.resetBaseline(EditProfileActivity.this);
                         }
                         AlertController.refresh(EditProfileActivity.this);

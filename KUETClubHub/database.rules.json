@@ -1,0 +1,15 @@
+{
+  "rules": {
+    "club_chats": {
+      "$clubId": {
+        ".read": "auth != null",
+        "messages": {
+          ".read": "auth != null",
+          "$messageId": {
+            ".write": "auth != null && (!data.exists() || data.child('senderUid').val() == auth.uid || newData.exists() == false)"
+          }
+        }
+      }
+    }
+  }
+}

@@ -20,7 +20,7 @@ public class ClubEntity {
     public String name;
     public String category;
     public String description;
-    /** Organizer uids joined with commas. */
+    public String logoBase64;
     public String organizersCsv;
     public long memberCount;
 
@@ -30,6 +30,7 @@ public class ClubEntity {
         e.name = club.getName();
         e.category = club.getCategory();
         e.description = club.getDescription();
+        e.logoBase64 = club.getLogoBase64();
         e.organizersCsv = club.getOrganizers() == null ? ""
                 : android.text.TextUtils.join(",", club.getOrganizers());
         e.memberCount = club.getMemberCount();
@@ -42,8 +43,9 @@ public class ClubEntity {
         c.setName(name);
         c.setCategory(category);
         c.setDescription(description);
+        c.setLogoBase64(logoBase64);
         c.setMemberCount(memberCount);
-        c.setApproved(true); // only approved clubs are cached
+        c.setApproved(true);
         if (organizersCsv == null || organizersCsv.isEmpty()) {
             c.setOrganizers(new ArrayList<>());
         } else {

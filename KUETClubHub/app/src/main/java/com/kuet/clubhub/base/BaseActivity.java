@@ -14,6 +14,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.kuet.clubhub.util.ThemeManager;
+
 /**
  * Shared base for every Activity. It logs all lifecycle callbacks to Logcat
  * (filter by the tag "ClubHubLifecycle") and handles edge-to-edge window insets.
@@ -76,7 +78,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     /**
-     * Like applyInsets, but lets a coloured header run under the status bar: the root gets the
+     * Like applyInsets, but lets a header area run under the status bar: the root gets the
      * side/bottom/keyboard padding and the header gets extra top padding for the status bar.
      */
     protected void applyInsetsWithHeader(@NonNull View root, @NonNull View header) {
@@ -96,10 +98,13 @@ public abstract class BaseActivity extends AppCompatActivity {
         });
     }
 
-    /** Status-bar icons in white, for screens whose top area is the green header. */
+    /**
+     * Configures status-bar icon appearance to match the unified Mint-Surface header
+     * (dark icons in light mode, light icons in dark mode).
+     */
     protected void useWhiteStatusBarIcons() {
         WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
-                .setAppearanceLightStatusBars(false);
+                .setAppearanceLightStatusBars(!ThemeManager.isNight(this));
     }
 
     /** Starts the target as a fresh task (used after login / logout). */

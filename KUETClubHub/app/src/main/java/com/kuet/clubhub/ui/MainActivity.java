@@ -14,6 +14,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -40,7 +41,7 @@ import com.kuet.clubhub.ui.clubs.ClubListFragment;
 import com.kuet.clubhub.ui.events.EventDetailActivity;
 import com.kuet.clubhub.ui.events.EventPassActivity;
 import com.kuet.clubhub.ui.events.EventsFragment;
-import com.kuet.clubhub.ui.events.MyEventsFragment;
+import com.kuet.clubhub.ui.home.HomeFragment;
 import com.kuet.clubhub.ui.profile.ProfileFragment;
 import com.kuet.clubhub.ui.scan.ScanActivity;
 import com.kuet.clubhub.util.Io;
@@ -50,7 +51,7 @@ import com.kuet.clubhub.util.WidgetEventPicker;
 
 import java.util.List;
 
-/** Hosts the bottom navigation. The tabs shown depend on the signed-in user's role. */
+/** Hosts the floating 4-tab bottom navigation (Home, Clubs, Cal, Profile) matching UI.jpg. */
 public class MainActivity extends BaseActivity {
 
     public static final String ACTION_SHORTCUT_MY_PASS = "com.kuet.clubhub.action.SHORTCUT_MY_PASS";
@@ -75,34 +76,15 @@ public class MainActivity extends BaseActivity {
         session = new SessionManager(this);
         profile = session.getProfile();
         if (profile == null || FirebaseAuth.getInstance().getCurrentUser() == null) {
-            // No usable session: let the launcher sort it out.
             startClearTask(LauncherActivity.class);
             return;
         }
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        applyInsetsWithHeader(binding.getRoot(), binding.header);
-        useWhiteStatusBarIcons();
-
-        binding.toolbar.inflateMenu(R.menu.main_toolbar);
-        binding.toolbar.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.action_toggle_theme) {
-                ThemeManager.toggle(this);
-                return true;
-            }
-            if (item.getItemId() == R.id.action_alerts) {
-                startActivity(new Intent(this, AlertsActivity.class));
-                return true;
-            }
-            return false;
-        });
-
-        // The bell shows a yellow dot while there are unread alerts.
-        final MenuItem alertsItem = binding.toolbar.getMenu().findItem(R.id.action_alerts);
-        AppDatabase.getInstance(this).alertDao().observeUnreadCount().observe(this, count ->
-                alertsItem.setIcon(count != null && count > 0
-                        ? R.drawable.ic_bell_unread : R.drawable.ic_bell));
+        applyInsets(binding.getRoot());
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(!ThemeManager.isNight(this));
 
         binding.bottomNav.inflateMenu(menuFor(profile.getRoleEnum()));
         binding.bottomNav.setOnItemSelectedListener(item -> {
@@ -112,9 +94,10 @@ public class MainActivity extends BaseActivity {
         binding.bottomNav.setOnItemReselectedListener(item -> { /* keep the current screen */ });
 
         if (savedInstanceState == null) {
-            // The first tab is already selected after inflating the menu, so setSelectedItemId()
-            // would only fire the "reselected" listener and nothing would be shown. Show it directly.
-            MenuItem first = binding.bottomNav.getMenu().findItem(R.id.nav_clubs);
+            MenuItem first = binding.bottomNav.getMenu().findItem(R.id.nav_home);
+            if (first == null) {
+                first = binding.bottomNav.getMenu().getItem(0);
+            }
             first.setChecked(true);
             showTab(first);
             askForNotificationPermission();
@@ -125,7 +108,20 @@ public class MainActivity extends BaseActivity {
         refreshRoleFromServer();
     }
 
-    /** Handles app-icon shortcuts ("My ticket", "Scan QR") and taps on the home screen widget. */
+    public void switchToTab(int itemId) {
+        if (binding == null) return;
+        MenuItem item = binding.bottomNav.getMenu().findItem(itemId);
+        if (item != null) {
+            item.setChecked(true);
+            showTab(item);
+        }
+    }
+
+    public void openQuickShortcut(String action) {
+        Intent i = new Intent(action);
+        handleLaunchAction(i);
+    }
+
     private void handleLaunchAction(@Nullable Intent intent) {
         if (intent == null || intent.getAction() == null) {
             return;
@@ -143,7 +139,6 @@ public class MainActivity extends BaseActivity {
         if (!ACTION_SHORTCUT_MY_PASS.equals(action) && !ACTION_SHORTCUT_SCAN_QR.equals(action)) {
             return;
         }
-        selectTabIfPresent(R.id.nav_my_events, R.id.nav_events);
         final Context app = getApplicationContext();
         Io.DISK.execute(() -> {
             List<ScheduledEventEntity> rows = AppDatabase.getInstance(app).scheduleDao().getAll();
@@ -174,24 +169,12 @@ public class MainActivity extends BaseActivity {
         });
     }
 
-    private void selectTabIfPresent(int preferredId, int fallbackId) {
-        MenuItem item = binding.bottomNav.getMenu().findItem(preferredId);
-        if (item == null) {
-            item = binding.bottomNav.getMenu().findItem(fallbackId);
-        }
-        if (item != null) {
-            item.setChecked(true);
-            showTab(item);
-        }
-    }
-
     @Override
     protected void onStart() {
         super.onStart();
         if (binding == null) {
             return;
         }
-        // Keep alarms and the stored schedule in step with my registrations.
         registrationsListener = EventRepository.getInstance(this).listenMyRegistrations(
                 profile.getUid(), new EventRepository.MyRegistrationsListener() {
                     @Override
@@ -201,11 +184,9 @@ public class MainActivity extends BaseActivity {
 
                     @Override
                     public void onError(String message) {
-                        // Offline: the stored schedule and alarms stay as they were.
                     }
                 });
 
-        // While the app is open, the alert service's broadcast becomes a snackbar.
         alertReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -222,7 +203,6 @@ public class MainActivity extends BaseActivity {
                 new IntentFilter(AlertProcessor.ACTION_ALERTS_CHANGED),
                 ContextCompat.RECEIVER_NOT_EXPORTED);
 
-        // The app is visible, so the foreground service is allowed to start.
         AlertController.refresh(this);
     }
 
@@ -239,7 +219,6 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    /** Android 13+ needs the person's permission before any notification can show. */
     private void askForNotificationPermission() {
         if (Build.VERSION.SDK_INT < 33
                 || ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -271,16 +250,12 @@ public class MainActivity extends BaseActivity {
     private void showTab(MenuItem item) {
         int id = item.getItemId();
         Fragment fragment;
-        if (id == R.id.nav_clubs) {
+        if (id == R.id.nav_home) {
+            fragment = new HomeFragment();
+        } else if (id == R.id.nav_clubs) {
             fragment = ClubListFragment.newInstance(ClubListFragment.MODE_ALL);
         } else if (id == R.id.nav_events) {
             fragment = new EventsFragment();
-        } else if (id == R.id.nav_my_events) {
-            fragment = new MyEventsFragment();
-        } else if (id == R.id.nav_my_clubs) {
-            fragment = ClubListFragment.newInstance(ClubListFragment.MODE_MINE);
-        } else if (id == R.id.nav_pending) {
-            fragment = ClubListFragment.newInstance(ClubListFragment.MODE_PENDING);
         } else {
             fragment = new ProfileFragment();
         }
@@ -290,10 +265,6 @@ public class MainActivity extends BaseActivity {
                 .commit();
     }
 
-    /**
-     * Re-reads the profile in the background so a role change made in the Firebase
-     * console (for example promoting someone to admin) takes effect on the next launch.
-     */
     private void refreshRoleFromServer() {
         UserRepository.fetchProfile(profile.getUid(), new Callback<UserProfile>() {
             @Override
@@ -309,7 +280,6 @@ public class MainActivity extends BaseActivity {
 
             @Override
             public void onError(String message) {
-                // Offline or transient problem: keep using the saved profile.
             }
         });
     }

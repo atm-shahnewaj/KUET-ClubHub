@@ -26,6 +26,7 @@ public class EventEntity {
     public String title;
     public String description;
     public String type;
+    public String bannerBase64;
     public String tagsCsv;
     public String organizersCsv;
     public String venue;
@@ -34,7 +35,6 @@ public class EventEntity {
     public String createdBy;
     public long startMillis;
     public long endMillis;
-    /** 0 means "no deadline". */
     public long deadlineMillis;
     public long capacity;
     public long registeredCount;
@@ -52,6 +52,7 @@ public class EventEntity {
         x.title = e.getTitle();
         x.description = e.getDescription();
         x.type = e.getType();
+        x.bannerBase64 = e.getBannerBase64();
         x.tagsCsv = join(e.getTags());
         x.organizersCsv = join(e.getOrganizers());
         x.venue = e.getVenue();
@@ -80,6 +81,7 @@ public class EventEntity {
         e.setTitle(title);
         e.setDescription(description);
         e.setType(type);
+        e.setBannerBase64(bannerBase64);
         e.setTags(split(tagsCsv));
         e.setOrganizers(split(organizersCsv));
         e.setVenue(venue);

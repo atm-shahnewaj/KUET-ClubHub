@@ -2,6 +2,7 @@ package com.kuet.clubhub.data;
 
 import android.content.Context;
 
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -24,38 +25,24 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-/**
- * Club data: approved clubs are mirrored from Firestore into Room (so the directory
- * works offline); other lists and single clubs are read straight from Firestore.
- */
 public class ClubRepository {
 
     private static final String CLUBS = "clubs";
 
-    /** Delivers a full list of clubs. */
     public interface ClubsListener {
         void onClubs(List<Club> clubs);
-
         void onError(String message);
     }
 
-    /** Delivers one club. */
     public interface ClubListener {
         void onClub(Club club);
-
         void onMissing();
-
         void onError(String message);
     }
 
-    /** Reports the state of the Firestore -> Room sync. */
     public interface SyncListener {
-        /** A server snapshot was written to Room. */
         void onSynced();
-
-        /** Only an empty local cache answered (offline, nothing saved yet). */
         void onOfflineEmpty();
-
         void onError(String message);
     }
 
@@ -76,13 +63,10 @@ public class ClubRepository {
         return instance;
     }
 
-    // ---------------------------------------------------------------- directory (Room)
-
     public LiveData<List<ClubEntity>> observeCachedClubs() {
         return dao.observeAll();
     }
 
-    /** Keeps Room in step with the approved clubs in Firestore. Remove the registration to stop. */
     public ListenerRegistration startSync(SyncListener listener) {
         return db.collection(CLUBS).whereEqualTo("approved", true)
                 .addSnapshotListener((snap, error) -> {
@@ -93,7 +77,6 @@ public class ClubRepository {
                     if (snap == null) {
                         return;
                     }
-                    // An empty answer from the cache must not wipe clubs we already saved.
                     if (snap.getMetadata().isFromCache() && snap.isEmpty()) {
                         listener.onOfflineEmpty();
                         return;
@@ -109,8 +92,6 @@ public class ClubRepository {
                     listener.onSynced();
                 });
     }
-
-    // ---------------------------------------------------------------- live Firestore lists
 
     public ListenerRegistration listenMyClubs(String uid, ClubsListener listener) {
         return listen(db.collection(CLUBS).whereArrayContains("organizers", uid), listener);
@@ -136,7 +117,6 @@ public class ClubRepository {
                     list.add(c);
                 }
             }
-            // Sorted here so no composite Firestore index is needed.
             Collections.sort(list, (a, b) -> safe(a.getName()).compareToIgnoreCase(safe(b.getName())));
             listener.onClubs(list);
         });
@@ -161,7 +141,6 @@ public class ClubRepository {
         });
     }
 
-    /** Approved clubs the person may create events for (admins: all approved clubs). */
     public void loadClubsForEvents(boolean isAdmin, String uid, Callback<List<Club>> cb) {
         Query query = isAdmin
                 ? db.collection(CLUBS).whereEqualTo("approved", true)
@@ -183,10 +162,13 @@ public class ClubRepository {
         });
     }
 
-    // ---------------------------------------------------------------- writes
-
-    /** Admins create approved clubs; organizers create clubs that wait for approval. */
     public void createClub(String name, String category, String description,
+                           String creatorUid, boolean createdByAdmin, Callback<String> cb) {
+        createClub(name, category, description, null, creatorUid, createdByAdmin, cb);
+    }
+
+    public void createClub(String name, String category, String description,
+                           @Nullable String logoBase64,
                            String creatorUid, boolean createdByAdmin, Callback<String> cb) {
         List<String> organizers = new ArrayList<>();
         if (!createdByAdmin) {
@@ -196,6 +178,7 @@ public class ClubRepository {
         data.put("name", name);
         data.put("category", category);
         data.put("description", description);
+        data.put("logoBase64", logoBase64 == null ? "" : logoBase64);
         data.put("organizers", organizers);
         data.put("memberCount", 0L);
         data.put("approved", createdByAdmin);
@@ -212,8 +195,20 @@ public class ClubRepository {
 
     public void updateClub(String clubId, String name, String category, String description,
                            Callback<Void> cb) {
+        updateClub(clubId, name, category, description, null, cb);
+    }
+
+    public void updateClub(String clubId, String name, String category, String description,
+                           @Nullable String logoBase64, Callback<Void> cb) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("name", name);
+        updates.put("category", category);
+        updates.put("description", description);
+        if (logoBase64 != null) {
+            updates.put("logoBase64", logoBase64);
+        }
         db.collection(CLUBS).document(clubId)
-                .update("name", name, "category", category, "description", description)
+                .update(updates)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         cb.onSuccess(null);
@@ -233,8 +228,6 @@ public class ClubRepository {
                     }
                 });
     }
-
-    // ---------------------------------------------------------------- helpers
 
     private static Club toClub(DocumentSnapshot doc) {
         Club club = doc.toObject(Club.class);

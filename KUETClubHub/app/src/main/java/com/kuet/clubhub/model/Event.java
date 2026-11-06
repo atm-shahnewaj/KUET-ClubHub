@@ -13,6 +13,7 @@ public class Event {
     private String title;
     private String description;
     private String type = EventType.OTHER.getValue();
+    private String bannerBase64;
     private List<String> tags = new ArrayList<>();
     private List<String> organizers = new ArrayList<>();
     private Date startTime;
@@ -51,6 +52,9 @@ public class Event {
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
+
+    public String getBannerBase64() { return bannerBase64; }
+    public void setBannerBase64(String bannerBase64) { this.bannerBase64 = bannerBase64; }
 
     public List<String> getTags() { return tags; }
     public void setTags(List<String> tags) { this.tags = tags; }
@@ -100,8 +104,6 @@ public class Event {
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
 
-    // ---- helpers (not bean getters, so Firestore ignores them)
-
     public EventType typeEnum() {
         return EventType.fromValue(type);
     }
@@ -114,13 +116,11 @@ public class Event {
         return uid != null && organizers != null && organizers.contains(uid);
     }
 
-    /** True when the event has already finished. */
     public boolean hasEnded(long now) {
         Date end = endTime != null ? endTime : startTime;
         return end != null && now > end.getTime();
     }
 
-    /** True when people can no longer sign up (event started or deadline passed). */
     public boolean registrationClosed(long now) {
         if (startTime != null && now >= startTime.getTime()) {
             return true;

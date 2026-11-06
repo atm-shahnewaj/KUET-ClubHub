@@ -3,16 +3,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
+    android:background="@drawable/bg_screen_mint"
     android:orientation="vertical">
 
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_header_gradient"
         android:orientation="vertical"
-        android:paddingBottom="56dp">
+        android:paddingBottom="4dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
@@ -20,9 +19,10 @@
             android:layout_height="?attr/actionBarSize"
             android:background="@android:color/transparent"
             app:navigationIcon="@drawable/ic_arrow_back_white"
+            app:navigationIconTint="?attr/colorOnSurface"
             app:title="@string/title_checkin"
             app:titleTextAppearance="?attr/textAppearanceTitleLarge"
-            app:titleTextColor="@color/white" />
+            app:titleTextColor="?attr/colorOnSurface" />
 
         <TextView
             android:id="@+id/tv_event_title"
@@ -31,102 +31,128 @@
             android:ellipsize="end"
             android:maxLines="2"
             android:paddingHorizontal="20dp"
-            android:textColor="@color/white"
-            android:textSize="22sp"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tv_live_counter"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:alpha="0.95"
-            android:paddingHorizontal="20dp"
-            android:paddingTop="4dp"
-            android:textColor="@color/white"
-            android:textSize="16sp" />
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_pill"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="4dp"
+            android:textColor="?attr/colorOnPrimaryContainer"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="-28dp"
         android:layout_weight="1"
-        android:background="@drawable/bg_sheet_top">
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:paddingHorizontal="20dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="28dp">
 
-            <FrameLayout
-                android:layout_width="300dp"
-                android:layout_height="300dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_qr_card"
-                android:padding="14dp">
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerLowest"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="3dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
 
-                <ImageView
-                    android:id="@+id/iv_qr"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:contentDescription="@string/checkin_qr_description" />
-
-                <com.google.android.material.progressindicator.CircularProgressIndicator
-                    android:id="@+id/progress"
-                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:indeterminate="true" />
-            </FrameLayout>
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:padding="24dp">
 
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/countdown"
-                android:layout_width="300dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:max="1000"
-                app:trackCornerRadius="4dp"
-                app:trackThickness="8dp" />
+                    <FrameLayout
+                        android:layout_width="280dp"
+                        android:layout_height="280dp"
+                        android:background="@drawable/bg_qr_card"
+                        android:padding="14dp">
 
-            <TextView
-                android:id="@+id/tv_countdown"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                        <ImageView
+                            android:id="@+id/iv_qr"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/checkin_qr_description" />
 
-            <TextView
-                android:id="@+id/tv_error"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_pill_alert"
-                android:gravity="center"
-                android:padding="12dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnTertiaryContainer"
-                android:visibility="gone" />
+                        <com.google.android.material.progressindicator.CircularProgressIndicator
+                            android:id="@+id/progress"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:indeterminate="true" />
+                    </FrameLayout>
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:gravity="center"
-                android:text="@string/checkin_hint"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/countdown"
+                        android:layout_width="280dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:max="1000"
+                        app:trackCornerRadius="4dp"
+                        app:trackThickness="8dp" />
+
+                    <TextView
+                        android:id="@+id/tv_countdown"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorPrimary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_error"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_pill_alert"
+                        android:gravity="center"
+                        android:padding="12dp"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textColor="?attr/colorOnTertiaryContainer"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center"
+                        android:text="@string/checkin_hint"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_scan_passes"
                 style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:minHeight="54dp"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minHeight="54dp"
+                android:layout_marginTop="16dp"
                 android:text="@string/action_scan_passes"
                 app:cornerRadius="16dp" />
         </LinearLayout>

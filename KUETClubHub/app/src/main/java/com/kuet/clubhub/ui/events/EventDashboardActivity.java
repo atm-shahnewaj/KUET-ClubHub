@@ -210,6 +210,9 @@ public class EventDashboardActivity extends BaseActivity {
         binding.tvStatMissing.setText(String.valueOf(registered.size() - present));
         binding.tvStatSeats.setText(event == null ? "-"
                 : String.valueOf(event.getCapacity()));
+        if (event != null) {
+            com.kuet.clubhub.util.ImageHelper.bindEventBanner(binding.ivEventBanner, event.getBannerBase64(), event.typeEnum());
+        }
 
         List<Participant> rows = new ArrayList<>(registered);
         rows.addAll(waiting);

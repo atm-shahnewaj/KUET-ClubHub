@@ -1,7 +1,7 @@
 rules_version = '2';
 
-// KUET ClubHub - rules for Weeks 1-6 (users, clubs, events, registrations, waiting list, check-ins,
-// club memberships, feedback, teams, certificates, live polls and Q&A).
+// KUET ClubHub - rules for Weeks 1-6 (users, clubs, club notices, events, registrations, waiting list,
+// check-ins, club memberships, feedback, teams, certificates, live polls and Q&A).
 // Paste into Firebase Console -> Firestore Database -> Rules -> Publish.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -20,6 +20,10 @@ service cloud.firestore {
 
     function isOrganizer() {
       return signedIn() && myUser().role == 'organizer';
+    }
+
+    function validOptionalImage(data, field) {
+      return !(field in data) || data[field] == null || (data[field] is string && data[field].size() <= 350000);
     }
 
     function clubPath(clubId) {
@@ -146,7 +150,7 @@ service cloud.firestore {
           return isAdmin() || request.auth.uid in get(clubPath(clubId)).data.organizers;
         }
 
-        allow read: if signedIn() && (request.auth.uid == uid || isClubManager());
+        allow read: if signedIn() && (request.auth.uid == uid || isClubManager() || resource.data.status == 'approved');
 
         // Apply: only for yourself, only to an approved club, always as 'pending'.
         allow create: if signedIn()
@@ -168,6 +172,15 @@ service cloud.firestore {
 
         // Leave or withdraw yourself; organizers can remove anyone.
         allow delete: if signedIn() && (request.auth.uid == uid || isClubManager());
+      }
+
+      // ---- clubs/{clubId}/notices/{noticeId}: club announcements & pinned bulletin notices.
+      match /notices/{noticeId} {
+        function isClubManager() {
+          return isAdmin() || request.auth.uid in get(clubPath(clubId)).data.organizers;
+        }
+        allow read: if signedIn();
+        allow create, update, delete: if signedIn() && isClubManager();
       }
     }
 

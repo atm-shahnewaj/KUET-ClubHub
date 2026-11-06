@@ -13,6 +13,7 @@ public class MyRegistration {
     private String title;
     private String clubName;
     private String type = EventType.OTHER.getValue();
+    private String bannerBase64;
     private Date startTime;
     private Date endTime;
     private String venue;
@@ -36,6 +37,9 @@ public class MyRegistration {
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 
+    public String getBannerBase64() { return bannerBase64; }
+    public void setBannerBase64(String bannerBase64) { this.bannerBase64 = bannerBase64; }
+
     public Date getStartTime() { return startTime; }
     public void setStartTime(Date startTime) { this.startTime = startTime; }
 
@@ -58,13 +62,13 @@ public class MyRegistration {
         return REGISTERED.equals(status) || WAITLISTED.equals(status);
     }
 
-    /** A light Event built from the summary, so the same list adapter can show it. */
     public Event toEvent() {
         Event e = new Event();
         e.setId(eventId);
         e.setTitle(title);
         e.setClubName(clubName);
         e.setType(type);
+        e.setBannerBase64(bannerBase64);
         e.setStartTime(startTime);
         e.setEndTime(endTime);
         e.setVenue(venue);

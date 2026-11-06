@@ -1,13 +1,14 @@
 package com.kuet.clubhub.ui.auth;
 
 import android.os.Bundle;
-import android.util.Patterns;
 import android.view.View;
 
 import androidx.annotation.Nullable;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.kuet.clubhub.R;
 import com.kuet.clubhub.base.BaseActivity;
 import com.kuet.clubhub.data.Callback;
@@ -20,9 +21,15 @@ import com.kuet.clubhub.ui.MainActivity;
 import com.kuet.clubhub.util.PickerUtil;
 import com.kuet.clubhub.util.Years;
 
+/**
+ * Gmail-only account registration & Google OAuth profile completion screen.
+ */
 public class RegisterActivity extends BaseActivity {
 
+    public static final String EXTRA_GOOGLE_MODE = "google_mode";
+
     private ActivityRegisterBinding binding;
+    private boolean googleMode = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -31,6 +38,9 @@ public class RegisterActivity extends BaseActivity {
         setContentView(binding.getRoot());
         applyInsetsWithHeader(binding.getRoot(), binding.header);
         useWhiteStatusBarIcons();
+
+        FirebaseUser current = FirebaseAuth.getInstance().getCurrentUser();
+        googleMode = getIntent().getBooleanExtra(EXTRA_GOOGLE_MODE, false) || current != null;
 
         View.OnClickListener pickYear = v -> PickerUtil.showChoice(
                 this,
@@ -41,8 +51,77 @@ public class RegisterActivity extends BaseActivity {
         binding.etYear.setOnClickListener(pickYear);
         binding.tilYear.setEndIconOnClickListener(pickYear);
 
+        binding.btnGoogleRegister.setOnClickListener(v -> signInWithGoogleFirst());
         binding.btnRegister.setOnClickListener(v -> attemptRegister());
-        binding.btnHaveAccount.setOnClickListener(v -> finish());
+        binding.btnHaveAccount.setOnClickListener(v -> {
+            if (googleMode) {
+                UserRepository.logout(this);
+                startClearTask(LoginActivity.class);
+            } else {
+                finish();
+            }
+        });
+
+        applyGoogleModeUi();
+    }
+
+    private void applyGoogleModeUi() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (googleMode && user != null) {
+            binding.btnGoogleRegister.setVisibility(View.GONE);
+            binding.tvDividerOr.setVisibility(View.GONE);
+            binding.tilPassword.setVisibility(View.GONE);
+            binding.tilConfirmPassword.setVisibility(View.GONE);
+            if (user.getDisplayName() != null && !user.getDisplayName().isEmpty()
+                    && textOf(binding.etName).isEmpty()) {
+                binding.etName.setText(user.getDisplayName());
+            }
+            if (user.getEmail() != null) {
+                binding.etEmail.setText(user.getEmail());
+                binding.tilEmail.setEnabled(false);
+            }
+            binding.btnRegister.setText("Complete Gmail Profile");
+            binding.btnHaveAccount.setText("Switch Google Account");
+        } else {
+            googleMode = false;
+            binding.btnGoogleRegister.setVisibility(View.VISIBLE);
+            binding.tvDividerOr.setVisibility(View.VISIBLE);
+            binding.tilPassword.setVisibility(View.VISIBLE);
+            binding.tilConfirmPassword.setVisibility(View.VISIBLE);
+            binding.tilEmail.setEnabled(true);
+        }
+    }
+
+    private void signInWithGoogleFirst() {
+        setLoading(true);
+        UserRepository.signInWithGoogle(this, new Callback<FirebaseUser>() {
+            @Override
+            public void onSuccess(FirebaseUser user) {
+                UserRepository.fetchProfile(user.getUid(), new Callback<UserProfile>() {
+                    @Override
+                    public void onSuccess(UserProfile existing) {
+                        new SessionManager(RegisterActivity.this).save(existing);
+                        startClearTask(MainActivity.class);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        setLoading(false);
+                        googleMode = true;
+                        applyGoogleModeUi();
+                        Snackbar.make(binding.getRoot(),
+                                "Google account linked! Fill in your KUET details below.",
+                                Snackbar.LENGTH_LONG).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                setLoading(false);
+                Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void attemptRegister() {
@@ -81,7 +160,31 @@ public class RegisterActivity extends BaseActivity {
             binding.tilYear.setError(getString(R.string.error_year_required));
             valid = false;
         }
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (googleMode && currentUser != null) {
+            if (!valid) {
+                return;
+            }
+            setLoading(true);
+            UserRepository.saveGoogleUserProfile(currentUser, name, studentId, department, year, role,
+                    new Callback<UserProfile>() {
+                        @Override
+                        public void onSuccess(UserProfile result) {
+                            new SessionManager(RegisterActivity.this).save(result);
+                            startClearTask(MainActivity.class);
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            setLoading(false);
+                            Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
+                        }
+                    });
+            return;
+        }
+
+        if (!UserRepository.isValidGmail(email)) {
             binding.tilEmail.setError(getString(R.string.error_email_invalid));
             valid = false;
         }
@@ -116,6 +219,7 @@ public class RegisterActivity extends BaseActivity {
 
     private void setLoading(boolean loading) {
         binding.progress.setVisibility(loading ? View.VISIBLE : View.GONE);
+        binding.btnGoogleRegister.setEnabled(!loading);
         binding.btnRegister.setEnabled(!loading);
         binding.btnHaveAccount.setEnabled(!loading);
     }

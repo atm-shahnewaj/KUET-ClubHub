@@ -1,14 +1,21 @@
 package com.kuet.clubhub.data;
 
+import android.app.Activity;
 import android.content.Context;
+import android.util.Patterns;
 
+import androidx.annotation.Nullable;
+
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseNetworkException;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.OAuthProvider;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -21,21 +28,123 @@ import com.kuet.clubhub.util.NotificationPrefs;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-/** Authentication + user-profile operations (Firebase Auth and Firestore users/{uid}). */
+/**
+ * Gmail-only Authentication + user-profile operations (Firebase Auth Google OAuth + Gmail validation
+ * and Firestore users/{uid}).
+ */
 public final class UserRepository {
 
+    public static final String ERR_NO_PROFILE = "NO_PROFILE";
     private static final String USERS = "users";
 
     private UserRepository() {
     }
 
+    /** Enforces that only valid @gmail.com (or @googlemail.com) addresses are accepted. */
+    public static boolean isValidGmail(@Nullable String email) {
+        if (email == null) {
+            return false;
+        }
+        String trimmed = email.trim().toLowerCase(Locale.ROOT);
+        if (!Patterns.EMAIL_ADDRESS.matcher(trimmed).matches()) {
+            return false;
+        }
+        return trimmed.endsWith("@gmail.com") || trimmed.endsWith("@googlemail.com");
+    }
+
+    /**
+     * Launches Firebase Auth's Google OAuth sign-in flow (works out of the box with Firebase Auth
+     * once Google Sign-In is enabled in Firebase Console -> Authentication -> Sign-in method).
+     */
+    public static void signInWithGoogle(Activity activity, Callback<FirebaseUser> cb) {
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+        Task<AuthResult> pending = auth.getPendingAuthResult();
+        if (pending != null) {
+            pending.addOnSuccessListener(result -> {
+                if (result != null && result.getUser() != null) {
+                    cb.onSuccess(result.getUser());
+                } else {
+                    cb.onError("Google sign-in could not be completed.");
+                }
+            }).addOnFailureListener(e -> cb.onError(authError(e)));
+            return;
+        }
+
+        OAuthProvider.Builder provider = OAuthProvider.newBuilder("google.com");
+        provider.addCustomParameter("prompt", "select_account");
+        auth.startActivityForSignInWithProvider(activity, provider.build())
+                .addOnSuccessListener(result -> {
+                    FirebaseUser user = result != null ? result.getUser() : auth.getCurrentUser();
+                    if (user != null) {
+                        cb.onSuccess(user);
+                    } else {
+                        cb.onError("Google sign-in did not return an account.");
+                    }
+                })
+                .addOnFailureListener(e -> cb.onError(authError(e)));
+    }
+
+    /**
+     * Saves the KUET student/organizer profile in Firestore for an already-authenticated Google user.
+     */
+    public static void saveGoogleUserProfile(FirebaseUser user, String name, String studentId,
+                                             String department, int year, Role role,
+                                             Callback<UserProfile> cb) {
+        String email = user.getEmail() == null ? "" : user.getEmail().trim();
+        UserProfile profile = new UserProfile();
+        profile.setUid(user.getUid());
+        profile.setName(name);
+        profile.setStudentId(studentId);
+        profile.setDepartment(department);
+        profile.setYear(year);
+        profile.setEmail(email);
+        profile.setRole(role.getValue());
+        profile.setPhotoBase64("");
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", name);
+        data.put("studentId", studentId);
+        data.put("department", department);
+        data.put("year", year);
+        data.put("email", email);
+        data.put("role", role.getValue());
+        data.put("points", 0L);
+        data.put("photoBase64", "");
+        data.put("skills", new ArrayList<String>());
+        data.put("interests", new ArrayList<String>());
+        data.put("createdAt", FieldValue.serverTimestamp());
+
+        FirebaseFirestore.getInstance().collection(USERS).document(user.getUid())
+                .set(data)
+                .addOnCompleteListener(saveTask -> {
+                    if (saveTask.isSuccessful()) {
+                        cb.onSuccess(profile);
+                    } else {
+                        cb.onError("Your profile could not be saved. "
+                                + firestoreError(saveTask.getException()));
+                    }
+                });
+    }
+
     public static void register(String name, String studentId, String department, int year,
                                 String email, String password, Role role,
                                 Callback<UserProfile> cb) {
+        register(name, studentId, department, year, email, password, role, null, cb);
+    }
+
+    public static void register(String name, String studentId, String department, int year,
+                                String email, String password, Role role,
+                                @Nullable String photoBase64,
+                                Callback<UserProfile> cb) {
+        if (!isValidGmail(email)) {
+            cb.onError("Only @gmail.com accounts are allowed.");
+            return;
+        }
         FirebaseAuth auth = FirebaseAuth.getInstance();
-        auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
+        auth.createUserWithEmailAndPassword(email.trim(), password).addOnCompleteListener(task -> {
             if (!task.isSuccessful() || task.getResult() == null
                     || task.getResult().getUser() == null) {
                 cb.onError(authError(task.getException()));
@@ -49,17 +158,19 @@ public final class UserRepository {
             profile.setStudentId(studentId);
             profile.setDepartment(department);
             profile.setYear(year);
-            profile.setEmail(email);
+            profile.setEmail(email.trim());
             profile.setRole(role.getValue());
+            profile.setPhotoBase64(photoBase64);
 
             Map<String, Object> data = new HashMap<>();
             data.put("name", name);
             data.put("studentId", studentId);
             data.put("department", department);
             data.put("year", year);
-            data.put("email", email);
+            data.put("email", email.trim());
             data.put("role", role.getValue());
             data.put("points", 0L);
+            data.put("photoBase64", photoBase64 == null ? "" : photoBase64);
             data.put("skills", new ArrayList<String>());
             data.put("interests", new ArrayList<String>());
             data.put("createdAt", FieldValue.serverTimestamp());
@@ -70,7 +181,6 @@ public final class UserRepository {
                         if (saveTask.isSuccessful()) {
                             cb.onSuccess(profile);
                         } else {
-                            // Undo the half-finished sign-up so the person can try again.
                             user.delete().addOnCompleteListener(d -> auth.signOut());
                             cb.onError("Your account could not be set up. "
                                     + firestoreError(saveTask.getException()));
@@ -80,8 +190,12 @@ public final class UserRepository {
     }
 
     public static void login(String email, String password, Callback<UserProfile> cb) {
+        if (!isValidGmail(email)) {
+            cb.onError("Only @gmail.com accounts are allowed.");
+            return;
+        }
         FirebaseAuth auth = FirebaseAuth.getInstance();
-        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
+        auth.signInWithEmailAndPassword(email.trim(), password).addOnCompleteListener(task -> {
             FirebaseUser user = auth.getCurrentUser();
             if (!task.isSuccessful() || user == null) {
                 cb.onError(authError(task.getException()));
@@ -95,8 +209,12 @@ public final class UserRepository {
 
                 @Override
                 public void onError(String message) {
-                    auth.signOut();
-                    cb.onError(message);
+                    if (ERR_NO_PROFILE.equals(message)) {
+                        cb.onError(ERR_NO_PROFILE);
+                    } else {
+                        auth.signOut();
+                        cb.onError(message);
+                    }
                 }
             });
         });
@@ -111,7 +229,7 @@ public final class UserRepository {
                     }
                     DocumentSnapshot doc = task.getResult();
                     if (doc == null || !doc.exists()) {
-                        cb.onError("No profile was found for this account.");
+                        cb.onError(ERR_NO_PROFILE);
                         return;
                     }
                     UserProfile profile = doc.toObject(UserProfile.class);
@@ -125,7 +243,11 @@ public final class UserRepository {
     }
 
     public static void sendPasswordReset(String email, Callback<Void> cb) {
-        FirebaseAuth.getInstance().sendPasswordResetEmail(email).addOnCompleteListener(task -> {
+        if (!isValidGmail(email)) {
+            cb.onError("Enter a valid @gmail.com address.");
+            return;
+        }
+        FirebaseAuth.getInstance().sendPasswordResetEmail(email.trim()).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 cb.onSuccess(null);
             } else {
@@ -138,12 +260,22 @@ public final class UserRepository {
     public static void updateProfile(String uid, String name, String department, int year,
                                      List<String> skills, List<String> interests,
                                      Callback<Void> cb) {
+        updateProfile(uid, name, department, year, skills, interests, null, cb);
+    }
+
+    public static void updateProfile(String uid, String name, String department, int year,
+                                     List<String> skills, List<String> interests,
+                                     @Nullable String photoBase64,
+                                     Callback<Void> cb) {
         Map<String, Object> data = new HashMap<>();
         data.put("name", name);
         data.put("department", department);
         data.put("year", year);
         data.put("skills", skills);
         data.put("interests", interests);
+        if (photoBase64 != null) {
+            data.put("photoBase64", photoBase64);
+        }
         FirebaseFirestore.getInstance().collection(USERS).document(uid).update(data)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -155,7 +287,6 @@ public final class UserRepository {
     }
 
     public static void logout(Context context) {
-        // Stop everything that belongs to the signed-in student before forgetting them.
         AlertController.stopAll(context);
         ScheduleSync.clearAll(context);
         NotificationPrefs.clearSession(context);
@@ -164,18 +295,17 @@ public final class UserRepository {
     }
 
     static String authError(Exception e) {
-        // WeakPassword extends InvalidCredentials, so it must be checked first.
         if (e instanceof FirebaseAuthWeakPasswordException) {
             return "That password is too weak. Use at least 6 characters.";
         }
         if (e instanceof FirebaseAuthUserCollisionException) {
-            return "An account with this email already exists.";
+            return "An account with this Gmail address already exists.";
         }
         if (e instanceof FirebaseAuthInvalidUserException) {
-            return "No account was found for this email, or it has been disabled.";
+            return "No account was found for this Gmail address, or it has been disabled.";
         }
         if (e instanceof FirebaseAuthInvalidCredentialsException) {
-            return "Incorrect email or password.";
+            return "Incorrect Gmail credentials.";
         }
         if (e instanceof FirebaseNetworkException) {
             return "No internet connection. Check your network and try again.";
@@ -183,7 +313,7 @@ public final class UserRepository {
         if (e != null && e.getMessage() != null) {
             return e.getMessage();
         }
-        return "Something went wrong. Please try again.";
+        return "Authentication could not be completed. Please try again.";
     }
 
     static String firestoreError(Exception e) {

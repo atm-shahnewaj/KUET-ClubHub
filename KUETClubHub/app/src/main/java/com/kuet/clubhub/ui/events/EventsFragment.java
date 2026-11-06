@@ -53,6 +53,8 @@ public class EventsFragment extends Fragment {
     private String query = "";
     private EventType typeFilter = null; // null = all
     private boolean calendarMode = false;
+    private boolean myEventsMode = false;
+    private final Map<String, String> myStatusMap = new HashMap<>();
     private boolean loaded = false;
     private boolean offlineEmpty = false;
 
@@ -96,6 +98,7 @@ public class EventsFragment extends Fragment {
         binding.toggleView.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
                 calendarMode = checkedId == R.id.btn_view_calendar;
+                myEventsMode = checkedId == R.id.btn_view_mine;
                 render();
             }
         });
@@ -142,9 +145,12 @@ public class EventsFragment extends Fragment {
                                 status.put(r.getEventId(), r.getStatus());
                             }
                         }
+                        myStatusMap.clear();
+                        myStatusMap.putAll(status);
                         if (adapter != null) {
                             adapter.setMyStatus(status);
                         }
+                        if (myEventsMode) render();
                     }
 
                     @Override
@@ -332,6 +338,9 @@ public class EventsFragment extends Fragment {
         List<Event> past = new ArrayList<>();
         long now = System.currentTimeMillis();
         for (Event e : allEvents) {
+            if (myEventsMode && !myStatusMap.containsKey(e.getId())) {
+                continue;
+            }
             if (typeFilter != null && e.typeEnum() != typeFilter) {
                 continue;
             }
@@ -378,6 +387,9 @@ public class EventsFragment extends Fragment {
     private int emptyMessage() {
         if (calendarMode) {
             return R.string.empty_events_day;
+        }
+        if (myEventsMode) {
+            return R.string.empty_my_events;
         }
         boolean filtering = !query.trim().isEmpty() || typeFilter != null;
         if (filtering && !allEvents.isEmpty()) {

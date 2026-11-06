@@ -98,6 +98,30 @@ public final class MembershipRepository {
         });
     }
 
+    /** Public directory of approved members for a club. */
+    public static ListenerRegistration listenApproved(String clubId, MembersListener listener) {
+        return clubRef(clubId).collection(MEMBERS)
+                .whereEqualTo("status", ClubMember.APPROVED)
+                .addSnapshotListener((snap, error) -> {
+                    if (error != null) {
+                        listener.onError(describe(error));
+                        return;
+                    }
+                    if (snap == null) {
+                        return;
+                    }
+                    List<ClubMember> list = new ArrayList<>();
+                    for (DocumentSnapshot d : snap.getDocuments()) {
+                        ClubMember m = d.toObject(ClubMember.class);
+                        if (m != null) {
+                            m.setUid(d.getId());
+                            list.add(m);
+                        }
+                    }
+                    listener.onMembers(list);
+                });
+    }
+
     // ---------------------------------------------------------------- student actions
 
     /** Sends an application, or applies again after a rejection. */

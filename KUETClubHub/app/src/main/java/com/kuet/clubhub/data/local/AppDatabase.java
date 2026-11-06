@@ -7,7 +7,7 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 
 @Database(entities = {ClubEntity.class, EventEntity.class, ScheduledEventEntity.class,
-        AlertEntity.class}, version = 4, exportSchema = false)
+        AlertEntity.class}, version = 5, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static volatile AppDatabase instance;
@@ -28,7 +28,6 @@ public abstract class AppDatabase extends RoomDatabase {
                                     context.getApplicationContext(),
                                     AppDatabase.class,
                                     "clubhub.db")
-                            // It is only a cache, so wiping it on a schema change is fine.
                             .fallbackToDestructiveMigration()
                             .build();
                 }

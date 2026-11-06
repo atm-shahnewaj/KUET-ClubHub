@@ -39,6 +39,7 @@ public class EventAdapter extends ListAdapter<Event, EventAdapter.EventViewHolde
             return Objects.equals(a.getTitle(), b.getTitle())
                     && Objects.equals(a.getClubName(), b.getClubName())
                     && Objects.equals(a.getType(), b.getType())
+                    && Objects.equals(a.getBannerBase64(), b.getBannerBase64())
                     && Objects.equals(a.getVenue(), b.getVenue())
                     && Objects.equals(a.getStartTime(), b.getStartTime())
                     && Objects.equals(a.getEndTime(), b.getEndTime())
@@ -101,6 +102,7 @@ public class EventAdapter extends ListAdapter<Event, EventAdapter.EventViewHolde
             binding.tvVenue.setText(e.getVenue());
 
             EventTypeStyle.apply(binding.tvType, type);
+            com.kuet.clubhub.util.ImageHelper.bindEventBanner(binding.ivEventBanner, e.getBannerBase64(), type);
 
             long now = System.currentTimeMillis();
             if (!showSeats) {

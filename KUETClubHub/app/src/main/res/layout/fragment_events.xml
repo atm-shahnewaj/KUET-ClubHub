@@ -2,19 +2,45 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_screen_mint">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <!-- Modern Header matching HomeFragment -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Campus Events"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Workshops, seminars, and competitions at KUET"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
         <com.google.android.material.button.MaterialButtonToggleGroup
             android:id="@+id/toggle_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="12dp"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="10dp"
             app:selectionRequired="true"
             app:singleSelection="true">
 
@@ -33,6 +59,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/view_calendar" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_view_mine"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/title_my_events" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
 
         <LinearLayout
@@ -41,99 +75,126 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <com.google.android.material.textfield.TextInputLayout
+            <!-- Pill Search Bar matching HomeFragment -->
+            <LinearLayout
                 android:id="@+id/til_search"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="8dp"
-                android:hint="@string/hint_search_events"
-                app:boxCornerRadiusBottomEnd="28dp"
-                app:boxCornerRadiusBottomStart="28dp"
-                app:boxCornerRadiusTopEnd="28dp"
-                app:boxCornerRadiusTopStart="28dp"
-                app:startIconDrawable="@drawable/ic_search">
+                android:layout_height="50dp"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_search_pill"
+                android:elevation="2dp"
+                android:gravity="center_vertical"
+                android:baselineAligned="false"
+                        android:orientation="horizontal"
+                android:paddingHorizontal="16dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:alpha="0.55"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_search" />
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_search"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:background="@null"
+                    android:hint="@string/hint_search_events"
                     android:imeOptions="actionSearch"
                     android:inputType="text"
-                    android:maxLines="1" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:maxLines="1"
+                    android:textSize="14sp" />
+            </LinearLayout>
 
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
                 android:scrollbars="none">
 
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/chip_group"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:paddingHorizontal="16dp"
+                    android:paddingHorizontal="20dp"
                     app:selectionRequired="true"
                     app:singleLine="true"
                     app:singleSelection="true" />
             </HorizontalScrollView>
         </LinearLayout>
 
-        <LinearLayout
+        <!-- Calendar View Card -->
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/calendar_block"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="12dp"
-            android:paddingTop="8dp"
-            android:visibility="gone">
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginTop="10dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerLowest"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="2dp"
+            app:strokeColor="?attr/colorOutlineVariant"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:padding="12dp">
 
-                <ImageButton
-                    android:id="@+id/btn_prev_month"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/action_prev_month"
-                    android:src="@drawable/ic_chevron_left" />
-
-                <TextView
-                    android:id="@+id/tv_month_title"
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:baselineAligned="false"
+                        android:orientation="horizontal">
 
-                <ImageButton
-                    android:id="@+id/btn_next_month"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/action_next_month"
-                    android:src="@drawable/ic_chevron_right" />
+                    <ImageButton
+                        android:id="@+id/btn_prev_month"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/action_prev_month"
+                        android:src="@drawable/ic_chevron_left" />
+
+                    <TextView
+                        android:id="@+id/tv_month_title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textStyle="bold" />
+
+                    <ImageButton
+                        android:id="@+id/btn_next_month"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/action_next_month"
+                        android:src="@drawable/ic_chevron_right" />
+                </LinearLayout>
+
+                <com.kuet.clubhub.ui.events.MonthCalendarView
+                    android:id="@+id/calendar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
             </LinearLayout>
-
-            <com.kuet.clubhub.ui.events.MonthCalendarView
-                android:id="@+id/calendar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:id="@+id/tv_day_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="20dp"
-            android:paddingTop="8dp"
+            android:paddingTop="10dp"
             android:textAppearance="?attr/textAppearanceTitleSmall"
             android:textColor="?attr/colorPrimary"
+            android:textStyle="bold"
             android:visibility="gone" />
 
         <FrameLayout
@@ -146,7 +207,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingHorizontal="10dp"
+                android:paddingHorizontal="14dp"
                 android:paddingTop="4dp"
                 android:paddingBottom="96dp" />
 

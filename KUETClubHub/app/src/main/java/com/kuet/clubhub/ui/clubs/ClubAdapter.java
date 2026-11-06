@@ -33,6 +33,7 @@ public class ClubAdapter extends ListAdapter<Club, ClubAdapter.ClubViewHolder> {
             return Objects.equals(a.getName(), b.getName())
                     && Objects.equals(a.getCategory(), b.getCategory())
                     && Objects.equals(a.getDescription(), b.getDescription())
+                    && Objects.equals(a.getLogoBase64(), b.getLogoBase64())
                     && a.getMemberCount() == b.getMemberCount()
                     && a.isApproved() == b.isApproved();
         }
@@ -71,6 +72,7 @@ public class ClubAdapter extends ListAdapter<Club, ClubAdapter.ClubViewHolder> {
             String name = club.getName() == null ? "" : club.getName();
             binding.tvAvatar.setText(name.isEmpty() ? "?"
                     : name.substring(0, 1).toUpperCase(Locale.ROOT));
+            com.kuet.clubhub.util.ImageHelper.bindClubLogo(binding.ivClubLogo, club.getLogoBase64());
             binding.tvName.setText(name);
             binding.tvCategory.setText(club.getCategory());
             binding.tvDescription.setText(club.getDescription());

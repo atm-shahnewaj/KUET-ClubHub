@@ -261,6 +261,7 @@ public class EventRepository {
         data.put("title", e.getTitle());
         data.put("description", e.getDescription());
         data.put("type", e.getType());
+        data.put("bannerBase64", e.getBannerBase64() == null ? "" : e.getBannerBase64());
         data.put("tags", e.getTags() == null ? new ArrayList<String>() : e.getTags());
         data.put("startTime", e.getStartTime());
         data.put("endTime", e.getEndTime());
@@ -349,6 +350,7 @@ public class EventRepository {
             mirror.put("title", event.getString("title"));
             mirror.put("clubName", event.getString("clubName"));
             mirror.put("type", event.getString("type"));
+            mirror.put("bannerBase64", event.getString("bannerBase64"));
             mirror.put("startTime", event.getDate("startTime"));
             mirror.put("endTime", event.getDate("endTime"));
             mirror.put("venue", event.getString("venue"));

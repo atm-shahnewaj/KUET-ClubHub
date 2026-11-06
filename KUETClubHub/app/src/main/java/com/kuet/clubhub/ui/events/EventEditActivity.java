@@ -38,13 +38,16 @@ import java.util.Set;
 import java.util.TimeZone;
 
 /**
- * Creates an event (no extra), clones an existing one with new dates ({@link #EXTRA_CLONE_FROM_ID}),
+ * Creates an event (no extra, or {@link #EXTRA_PRESELECT_CLUB_ID} from inside a club),
+ * clones an existing one with new dates ({@link #EXTRA_CLONE_FROM_ID}),
  * or edits one ({@link #EXTRA_EVENT_ID}). Organizers of the club and admins only.
  */
 public class EventEditActivity extends BaseActivity {
 
     public static final String EXTRA_EVENT_ID = "event_id";
     public static final String EXTRA_CLONE_FROM_ID = "clone_from_id";
+    public static final String EXTRA_PRESELECT_CLUB_ID = "preselect_club_id";
+    public static final String EXTRA_PRESELECT_CLUB_NAME = "preselect_club_name";
 
     private static final String S_CLUB_ID = "s_club_id";
     private static final String S_CLUB_NAME = "s_club_name";
@@ -54,6 +57,7 @@ public class EventEditActivity extends BaseActivity {
     private static final String S_END = "s_end";
     private static final String S_DEADLINE = "s_deadline";
     private static final String S_REGISTERED = "s_registered";
+    private static final String S_BANNER = "s_banner";
 
     private static final long MINUTE = 60_000L;
 
@@ -63,6 +67,7 @@ public class EventEditActivity extends BaseActivity {
     private UserProfile profile;
     private String eventId;
     private String cloneFromId;
+    private String preselectClubId;
 
     private String clubId;
     private String clubName;
@@ -72,6 +77,22 @@ public class EventEditActivity extends BaseActivity {
     private int endMinutes = -1;
     private long deadlineMillis = 0;  // local midnight of the deadline day, 0 = not chosen
     private long currentRegistered = 0;
+    private String bannerBase64;
+
+    private final androidx.activity.result.ActivityResultLauncher<String> pickBannerLauncher =
+            registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.GetContent(), uri -> {
+                if (uri == null) return;
+                com.kuet.clubhub.util.Io.DISK.execute(() -> {
+                    String encoded = com.kuet.clubhub.util.ImageHelper.encodeUriToBase64(this, uri, 640, 360, 78);
+                    runOnUiThread(() -> {
+                        if (encoded != null && binding != null) {
+                            bannerBase64 = encoded;
+                            com.kuet.clubhub.util.ImageHelper.bindEventBanner(binding.ivEventBanner, bannerBase64,
+                                    EventType.fromLabel(textOf(binding.etType)));
+                        }
+                    });
+                });
+            });
     private final List<Club> availableClubs = new ArrayList<>();
 
     @Override
@@ -91,6 +112,8 @@ public class EventEditActivity extends BaseActivity {
         clubs = ClubRepository.getInstance(this);
         eventId = getIntent().getStringExtra(EXTRA_EVENT_ID);
         cloneFromId = getIntent().getStringExtra(EXTRA_CLONE_FROM_ID);
+        preselectClubId = getIntent().getStringExtra(EXTRA_PRESELECT_CLUB_ID);
+        String preselectClubName = getIntent().getStringExtra(EXTRA_PRESELECT_CLUB_NAME);
         boolean editing = eventId != null;
         boolean cloning = !editing && cloneFromId != null;
 
@@ -108,9 +131,18 @@ public class EventEditActivity extends BaseActivity {
             endMinutes = savedInstanceState.getInt(S_END, -1);
             deadlineMillis = savedInstanceState.getLong(S_DEADLINE);
             currentRegistered = savedInstanceState.getLong(S_REGISTERED);
+            bannerBase64 = savedInstanceState.getString(S_BANNER);
+        } else if (preselectClubId != null && !preselectClubId.isEmpty()) {
+            clubId = preselectClubId;
+            clubName = preselectClubName == null ? "" : preselectClubName;
+            binding.etClub.setText(clubName);
         }
 
         setupPickers(editing);
+        View.OnClickListener pickBanner = v -> pickBannerLauncher.launch("image/*");
+        binding.cardPickBanner.setOnClickListener(pickBanner);
+        binding.btnUploadBanner.setOnClickListener(pickBanner);
+        com.kuet.clubhub.util.ImageHelper.bindEventBanner(binding.ivEventBanner, bannerBase64, EventType.fromLabel(textOf(binding.etType)));
         updateCompetitionVisibility();
         binding.btnSave.setOnClickListener(v -> save());
 
@@ -144,6 +176,7 @@ public class EventEditActivity extends BaseActivity {
         outState.putInt(S_END, endMinutes);
         outState.putLong(S_DEADLINE, deadlineMillis);
         outState.putLong(S_REGISTERED, currentRegistered);
+        outState.putString(S_BANNER, bannerBase64);
     }
 
     // ------------------------------------------------------------------ loading
@@ -158,7 +191,17 @@ public class EventEditActivity extends BaseActivity {
                         if (result.isEmpty()) {
                             Snackbar.make(binding.getRoot(), R.string.msg_no_clubs_for_events,
                                     Snackbar.LENGTH_INDEFINITE).show();
-                        } else if (autoSelect && result.size() == 1 && clubId == null) {
+                            return;
+                        }
+                        if (preselectClubId != null) {
+                            for (Club c : result) {
+                                if (preselectClubId.equals(c.getId())) {
+                                    selectClub(c);
+                                    return;
+                                }
+                            }
+                        }
+                        if (autoSelect && result.size() == 1 && clubId == null) {
                             selectClub(result.get(0));
                         }
                     }
@@ -180,6 +223,8 @@ public class EventEditActivity extends BaseActivity {
                         e.getOrganizers() == null ? new ArrayList<String>() : e.getOrganizers());
                 currentRegistered = asClone ? 0 : e.getRegisteredCount();
 
+                bannerBase64 = e.getBannerBase64();
+                com.kuet.clubhub.util.ImageHelper.bindEventBanner(binding.ivEventBanner, bannerBase64, e.typeEnum());
                 binding.etClub.setText(clubName);
                 binding.etTitle.setText(e.getTitle());
                 binding.etType.setText(e.typeEnum().getLabel());
@@ -345,6 +390,7 @@ public class EventEditActivity extends BaseActivity {
     }
 
     private void updateCompetitionVisibility() {
+        com.kuet.clubhub.util.ImageHelper.bindEventBanner(binding.ivEventBanner, bannerBase64, EventType.fromLabel(textOf(binding.etType)));
         boolean competition = EventType.fromLabel(textOf(binding.etType)) == EventType.COMPETITION;
         binding.competitionBlock.setVisibility(competition ? View.VISIBLE : View.GONE);
     }
@@ -459,6 +505,7 @@ public class EventEditActivity extends BaseActivity {
         e.setClubName(clubName);
         e.setOrganizers(new ArrayList<>(clubOrganizers));
         e.setTitle(title);
+        e.setBannerBase64(bannerBase64);
         e.setType(type.getValue());
         e.setDescription(description);
         e.setVenue(venue);

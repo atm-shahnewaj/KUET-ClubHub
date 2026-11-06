@@ -36,6 +36,7 @@ import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.model.WeatherForecast;
 import com.kuet.clubhub.provider.ScheduleClashChecker;
 import com.kuet.clubhub.ui.certificate.CertificateActivity;
+import com.kuet.clubhub.ui.clubs.ClubDetailActivity;
 import com.kuet.clubhub.ui.feedback.FeedbackListActivity;
 import com.kuet.clubhub.ui.live.LiveActivity;
 import com.kuet.clubhub.ui.scan.ScanActivity;
@@ -117,6 +118,15 @@ public class EventDetailActivity extends BaseActivity {
         repository = EventRepository.getInstance(this);
 
         binding.toolbar.setNavigationOnClickListener(v -> finish());
+        binding.cardHostClub.setOnClickListener(v -> {
+            if (current != null && current.getClubId() != null && !current.getClubId().isEmpty()) {
+                Intent i = new Intent(this, ClubDetailActivity.class);
+                i.putExtra(ClubDetailActivity.EXTRA_CLUB_ID, current.getClubId());
+                startActivity(i);
+            }
+        });
+        binding.btnShareEvent.setOnClickListener(v -> shareEvent());
+
         binding.btnRegister.setOnClickListener(v -> onRegisterClicked());
         binding.btnLeave.setOnClickListener(v -> confirmLeave());
         binding.btnParticipants.setOnClickListener(v -> {
@@ -290,14 +300,29 @@ public class EventDetailActivity extends BaseActivity {
         EventType type = e.typeEnum();
 
         binding.tvTitle.setText(e.getTitle());
-        binding.tvClub.setText(e.getClubName());
+        binding.tvClub.setText(e.getClubName() == null || e.getClubName().isEmpty()
+                ? "KUET Campus Club" : e.getClubName());
         EventTypeStyle.apply(binding.tvType, type);
+        com.kuet.clubhub.util.ImageHelper.bindEventBanner(binding.ivEventBanner, e.getBannerBase64(), type);
 
         binding.tvDate.setText(TimeFormats.fullDate(e.getStartTime()));
         binding.tvTime.setText(TimeFormats.timeRange(e.getStartTime(), e.getEndTime()));
         binding.tvVenue.setText(e.getVenue());
-        binding.tvSeats.setText(getString(R.string.seats_taken,
-                (int) e.getRegisteredCount(), (int) e.getCapacity()));
+
+        int regCount = (int) e.getRegisteredCount();
+        int cap = (int) e.getCapacity();
+        binding.tvSeats.setText(getString(R.string.seats_taken, regCount, cap));
+        int fillPct = cap > 0 ? Math.min(100, Math.round(regCount * 100f / cap)) : 0;
+        binding.progressSeats.setProgress(fillPct);
+
+        if (e.hasEnded(System.currentTimeMillis())) {
+            binding.tvCapacityTile.setText(R.string.event_ended);
+        } else if (cap > 0 && e.seatsLeft() == 0) {
+            binding.tvCapacityTile.setText(getString(R.string.seats_full_waitlist, (int) e.getWaitlistCount()));
+        } else {
+            binding.tvCapacityTile.setText(getString(R.string.seats_left, (int) e.seatsLeft(), cap));
+        }
+
         binding.rowWaitlist.setVisibility(e.getWaitlistCount() > 0 ? View.VISIBLE : View.GONE);
         binding.tvWaitlist.setText(String.valueOf(e.getWaitlistCount()));
 
@@ -438,50 +463,59 @@ public class EventDetailActivity extends BaseActivity {
             binding.btnAddCalendar.setVisibility(View.VISIBLE);
         }
 
-        if (profile.getRoleEnum() == Role.ADMIN) {
-            return; // admins moderate; they do not register
-        }
-        String status = myReg != null && myReg.isActive() ? myReg.getStatus() : null;
+        if (profile.getRoleEnum() != Role.ADMIN) {
+            String status = myReg != null && myReg.isActive() ? myReg.getStatus() : null;
 
-        if (MyRegistration.REGISTERED.equals(status)) {
-            binding.tvMyStatus.setVisibility(View.VISIBLE);
-            binding.tvMyStatus.setText(R.string.my_status_registered);
-            // Polls and Q&A are open to every registered student (voting itself needs a check-in).
-            binding.btnLive.setVisibility(View.VISIBLE);
-            if (e.typeEnum() == EventType.COMPETITION && e.getTeamSizeMax() > 0 && !e.hasEnded(now)) {
-                binding.btnTeams.setVisibility(View.VISIBLE);
-            }
-            if (myCheckIn != null) {
-                // Present: the pass and the cancel button are no longer needed.
-                binding.tvCheckedIn.setVisibility(View.VISIBLE);
-                // Attendance is verified, so rating and (after the event) the certificate unlock.
-                binding.btnFeedback.setVisibility(View.VISIBLE);
-                binding.btnFeedback.setText(myFeedback == null ? getString(R.string.action_rate_event)
-                        : getString(R.string.action_edit_rating, myFeedback.getRating()));
-                if (e.hasEnded(now)) {
-                    binding.btnCertificate.setVisibility(View.VISIBLE);
+            if (MyRegistration.REGISTERED.equals(status)) {
+                binding.tvMyStatus.setVisibility(View.VISIBLE);
+                binding.tvMyStatus.setText(R.string.my_status_registered);
+                // Polls and Q&A are open to every registered student (voting itself needs a check-in).
+                binding.btnLive.setVisibility(View.VISIBLE);
+                if (e.typeEnum() == EventType.COMPETITION && e.getTeamSizeMax() > 0 && !e.hasEnded(now)) {
+                    binding.btnTeams.setVisibility(View.VISIBLE);
                 }
-            } else if (!e.hasEnded(now)) {
-                binding.btnShowPass.setVisibility(View.VISIBLE);
-                binding.btnScanCheckin.setVisibility(View.VISIBLE);
+                if (myCheckIn != null) {
+                    // Present: the pass and the cancel button are no longer needed.
+                    binding.tvCheckedIn.setVisibility(View.VISIBLE);
+                    // Attendance is verified, so rating and (after the event) the certificate unlock.
+                    binding.btnFeedback.setVisibility(View.VISIBLE);
+                    binding.btnFeedback.setText(myFeedback == null ? getString(R.string.action_rate_event)
+                            : getString(R.string.action_edit_rating, myFeedback.getRating()));
+                    if (e.hasEnded(now)) {
+                        binding.btnCertificate.setVisibility(View.VISIBLE);
+                    }
+                } else if (!e.hasEnded(now)) {
+                    binding.btnShowPass.setVisibility(View.VISIBLE);
+                    binding.btnScanCheckin.setVisibility(View.VISIBLE);
+                    binding.btnLeave.setVisibility(View.VISIBLE);
+                    binding.btnLeave.setText(R.string.action_cancel_registration);
+                }
+            } else if (MyRegistration.WAITLISTED.equals(status)) {
+                long position = Math.max(1, myReg.getWaitSeq() - e.getWaitHead() + 1);
+                binding.tvMyStatus.setVisibility(View.VISIBLE);
+                binding.tvMyStatus.setText(getString(R.string.my_status_waitlisted, (int) position));
                 binding.btnLeave.setVisibility(View.VISIBLE);
-                binding.btnLeave.setText(R.string.action_cancel_registration);
+                binding.btnLeave.setText(R.string.action_leave_waitlist);
+            } else if (e.registrationClosed(now)) {
+                binding.tvClosed.setVisibility(View.VISIBLE);
+            } else {
+                binding.btnRegister.setVisibility(View.VISIBLE);
+                binding.btnRegister.setText(e.seatsLeft() > 0
+                        ? R.string.action_register_event : R.string.action_join_waitlist);
             }
-        } else if (MyRegistration.WAITLISTED.equals(status)) {
-            long position = Math.max(1, myReg.getWaitSeq() - e.getWaitHead() + 1);
-            binding.tvMyStatus.setVisibility(View.VISIBLE);
-            binding.tvMyStatus.setText(getString(R.string.my_status_waitlisted, (int) position));
-            binding.btnLeave.setVisibility(View.VISIBLE);
-            binding.btnLeave.setText(R.string.action_leave_waitlist);
-        } else if (e.registrationClosed(now)) {
-            binding.tvClosed.setVisibility(View.VISIBLE);
-        } else {
-            binding.btnRegister.setVisibility(View.VISIBLE);
-            binding.btnRegister.setText(e.seatsLeft() > 0
-                    ? R.string.action_register_event : R.string.action_join_waitlist);
+            binding.btnRegister.setEnabled(!busy);
+            binding.btnLeave.setEnabled(!busy);
         }
-        binding.btnRegister.setEnabled(!busy);
-        binding.btnLeave.setEnabled(!busy);
+
+        boolean anyAttendeeActionVisible =
+                binding.btnScanCheckin.getVisibility() == View.VISIBLE
+                        || binding.btnShowPass.getVisibility() == View.VISIBLE
+                        || binding.btnLive.getVisibility() == View.VISIBLE
+                        || binding.btnTeams.getVisibility() == View.VISIBLE
+                        || binding.btnAddCalendar.getVisibility() == View.VISIBLE
+                        || binding.btnFeedback.getVisibility() == View.VISIBLE
+                        || binding.btnCertificate.getVisibility() == View.VISIBLE;
+        binding.cardAttendeeActions.setVisibility(anyAttendeeActionVisible ? View.VISIBLE : View.GONE);
     }
 
     private void setBusy(boolean value) {
@@ -492,6 +526,20 @@ public class EventDetailActivity extends BaseActivity {
     }
 
     // ------------------------------------------------------------------ actions
+
+    private void shareEvent() {
+        if (current == null) return;
+        String text = current.getTitle() + " (" + current.typeEnum().getLabel() + ")\n"
+                + "Hosted by: " + (current.getClubName() == null ? "KUET Club" : current.getClubName()) + "\n"
+                + "When: " + TimeFormats.fullDate(current.getStartTime()) + " · "
+                + TimeFormats.timeRange(current.getStartTime(), current.getEndTime()) + "\n"
+                + "Venue: " + (current.getVenue() == null ? "KUET Campus" : current.getVenue());
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_SUBJECT, current.getTitle());
+        send.putExtra(Intent.EXTRA_TEXT, text);
+        startActivity(Intent.createChooser(send, "Share Event"));
+    }
 
     private void onAddCalendarClicked() {
         if (current == null || current.getStartTime() == null) {
