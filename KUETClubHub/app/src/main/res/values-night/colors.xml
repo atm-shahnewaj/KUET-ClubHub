@@ -6,4 +6,12 @@
     <color name="type_seminar">#F2C94C</color>
     <color name="type_competition">#FF6B6B</color>
     <color name="type_other">#9DB0A8</color>
+
+    <color name="widget_surface">#17201A</color>
+    <color name="widget_stroke">#2C3A30</color>
+    <color name="widget_title">#E6EDE7</color>
+    <color name="widget_meta">#AFC0B3</color>
+    <color name="widget_accent">#6FDC95</color>
+    <color name="widget_pill_bg">#00522A</color>
+    <color name="widget_pill_text">#C5F0D3</color>
 </resources>

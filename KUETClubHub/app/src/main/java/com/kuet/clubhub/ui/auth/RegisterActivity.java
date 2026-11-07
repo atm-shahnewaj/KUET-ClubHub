@@ -37,7 +37,9 @@ public class RegisterActivity extends BaseActivity {
         binding = ActivityRegisterBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         applyInsetsWithHeader(binding.getRoot(), binding.header);
-        useWhiteStatusBarIcons();
+        // Light hero under the status bar in both themes, so keep the icons dark.
+        androidx.core.view.WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(true);
 
         FirebaseUser current = FirebaseAuth.getInstance().getCurrentUser();
         googleMode = getIntent().getBooleanExtra(EXTRA_GOOGLE_MODE, false) || current != null;

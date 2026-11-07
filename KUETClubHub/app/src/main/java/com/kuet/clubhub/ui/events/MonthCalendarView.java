@@ -9,8 +9,10 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import androidx.annotation.Nullable;
+import androidx.core.content.res.ResourcesCompat;
 
 import com.google.android.material.color.MaterialColors;
+import com.kuet.clubhub.R;
 
 import java.text.DateFormatSymbols;
 import java.util.Calendar;
@@ -47,6 +49,8 @@ public class MonthCalendarView extends View {
     private int colorOnPrimary;
     private int colorOnSurface;
     private int colorMuted;
+    private Typeface dayRegular = Typeface.DEFAULT;
+    private Typeface dayBold = Typeface.DEFAULT_BOLD;
 
     private int year;
     private int month; // 0-based, like java.util.Calendar
@@ -80,7 +84,15 @@ public class MonthCalendarView extends View {
         dayPaint.setTextSize(15 * density);
         labelPaint.setTextAlign(Paint.Align.CENTER);
         labelPaint.setTextSize(12 * density);
-        labelPaint.setTypeface(Typeface.DEFAULT_BOLD);
+        Typeface bold = ResourcesCompat.getFont(context, R.font.plus_jakarta_sans_bold);
+        labelPaint.setTypeface(bold != null ? bold : Typeface.DEFAULT_BOLD);
+        Typeface regular = ResourcesCompat.getFont(context, R.font.plus_jakarta_sans_medium);
+        if (regular != null) {
+            dayRegular = regular;
+        }
+        if (bold != null) {
+            dayBold = bold;
+        }
         labelPaint.setColor(colorMuted);
         ringPaint.setStyle(Paint.Style.STROKE);
         ringPaint.setStrokeWidth(1.8f * density);
@@ -177,7 +189,7 @@ public class MonthCalendarView extends View {
 
             dayPaint.setColor(selected ? colorOnPrimary : colorOnSurface);
             dayPaint.setTypeface(selected || (isCurrentMonth && day == todayDay)
-                    ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+                    ? dayBold : dayRegular);
             float textY = cy - (dayPaint.descent() + dayPaint.ascent()) / 2f;
             canvas.drawText(String.valueOf(day), cx, textY, dayPaint);
 

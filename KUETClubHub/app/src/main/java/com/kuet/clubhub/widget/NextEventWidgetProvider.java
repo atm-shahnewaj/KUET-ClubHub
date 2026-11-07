@@ -22,6 +22,7 @@ import com.kuet.clubhub.util.WidgetEventPicker;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Home screen widget showing the student's next registered campus event with a countdown badge
@@ -59,23 +60,35 @@ public class NextEventWidgetProvider extends AppWidgetProvider {
         launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
         if (next != null) {
+            Date start = new Date(next.startMillis);
             String title = next.title == null || next.title.isEmpty()
                     ? app.getString(R.string.title_event) : next.title;
             String countdown = CountdownText.formatWidget(next.startMillis, next.endMillis, now);
-            String when = TimeFormats.dateTime(new Date(next.startMillis));
+            String time = TimeFormats.time(start);
             String meta = next.venue == null || next.venue.trim().isEmpty()
-                    ? when : when + " · " + next.venue.trim();
+                    ? time : time + " · " + next.venue.trim();
 
+            views.setTextViewText(R.id.tv_widget_header, app.getString(R.string.widget_label_next));
+            views.setTextViewText(R.id.tv_widget_month,
+                    TimeFormats.monthShort(start).toUpperCase(Locale.getDefault()));
+            views.setTextViewText(R.id.tv_widget_day, TimeFormats.dayNumber(start));
             views.setTextViewText(R.id.tv_widget_title, title);
             views.setTextViewText(R.id.tv_widget_meta, meta);
             views.setTextViewText(R.id.tv_widget_countdown, countdown);
+            views.setViewVisibility(R.id.tv_widget_month, View.VISIBLE);
+            views.setViewVisibility(R.id.tv_widget_day, View.VISIBLE);
+            views.setViewVisibility(R.id.iv_widget_icon, View.GONE);
             views.setViewVisibility(R.id.tv_widget_countdown, View.VISIBLE);
 
             launch.setAction(MainActivity.ACTION_OPEN_EVENT);
             launch.putExtra(EventDetailActivity.EXTRA_EVENT_ID, next.eventId);
         } else {
+            views.setTextViewText(R.id.tv_widget_header, app.getString(R.string.widget_label_empty));
             views.setTextViewText(R.id.tv_widget_title, app.getString(R.string.widget_empty_title));
             views.setTextViewText(R.id.tv_widget_meta, app.getString(R.string.widget_empty_subtitle));
+            views.setViewVisibility(R.id.tv_widget_month, View.GONE);
+            views.setViewVisibility(R.id.tv_widget_day, View.GONE);
+            views.setViewVisibility(R.id.iv_widget_icon, View.VISIBLE);
             views.setViewVisibility(R.id.tv_widget_countdown, View.GONE);
         }
 

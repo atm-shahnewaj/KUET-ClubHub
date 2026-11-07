@@ -55,7 +55,7 @@ import java.util.Map;
 /**
  * Full-featured Club Hub screen:
  * - Hero Club Identity card with live stats (Members, Events, Upcoming),
- *   Join/Leave/Withdraw controls, Share Club button, Members-Only Group Chat launcher,
+ *   Join/Leave/Withdraw controls, Members-Only Group Chat launcher,
  *   and Organizer/Admin Quick Console
  * - Tab 1: Events (Upcoming & Past events hosted by this club)
  * - Tab 2: Chat (Members-only real-time group chat via Firebase Realtime Database)
@@ -122,7 +122,6 @@ public class ClubDetailActivity extends BaseActivity {
         eventRepository = EventRepository.getInstance(this);
 
         binding.toolbar.setNavigationOnClickListener(v -> finish());
-        binding.btnShareClub.setOnClickListener(v -> shareClub());
 
         View.OnClickListener openChatClick = v -> onGroupChatClicked();
         binding.btnClubChat.setOnClickListener(openChatClick);
@@ -692,19 +691,6 @@ public class ClubDetailActivity extends BaseActivity {
         }
         memberPreviewAdapter.submitList(rows);
         binding.tvEmptyMembersPreview.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
-    }
-
-    private void shareClub() {
-        if (currentClub == null) return;
-        String text = currentClub.getName() + " (" + currentClub.getCategory() + ")\n"
-                + (currentClub.getDescription() == null ? "" : currentClub.getDescription())
-                + "\nMembers: " + currentClub.getMemberCount()
-                + " · Discover on KUET ClubHub!";
-        Intent send = new Intent(Intent.ACTION_SEND);
-        send.setType("text/plain");
-        send.putExtra(Intent.EXTRA_SUBJECT, currentClub.getName());
-        send.putExtra(Intent.EXTRA_TEXT, text);
-        startActivity(Intent.createChooser(send, "Share Club"));
     }
 
     // ------------------------------------------------------------------ membership

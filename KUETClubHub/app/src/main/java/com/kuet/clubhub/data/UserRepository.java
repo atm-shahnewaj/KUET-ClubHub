@@ -10,6 +10,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
@@ -38,6 +39,8 @@ import java.util.Map;
 public final class UserRepository {
 
     public static final String ERR_NO_PROFILE = "NO_PROFILE";
+    /** Firebase rejected the app's signing certificate: its SHA-1/SHA-256 is not registered. */
+    public static final String ERR_CERT_HASH = "CERT_HASH";
     private static final String USERS = "users";
 
     private UserRepository() {
@@ -69,7 +72,7 @@ public final class UserRepository {
                 } else {
                     cb.onError("Google sign-in could not be completed.");
                 }
-            }).addOnFailureListener(e -> cb.onError(authError(e)));
+            }).addOnFailureListener(e -> cb.onError(googleError(e)));
             return;
         }
 
@@ -84,7 +87,25 @@ public final class UserRepository {
                         cb.onError("Google sign-in did not return an account.");
                     }
                 })
-                .addOnFailureListener(e -> cb.onError(authError(e)));
+                .addOnFailureListener(e -> cb.onError(googleError(e)));
+    }
+
+    /** True when Firebase refused the sign-in because this build's certificate is not registered. */
+    static boolean isCertHashError(@Nullable Exception e) {
+        if (e instanceof FirebaseAuthException) {
+            String code = ((FirebaseAuthException) e).getErrorCode();
+            if (code != null && code.toUpperCase(Locale.ROOT).contains("CERT_HASH")) {
+                return true;
+            }
+        }
+        String msg = e == null || e.getMessage() == null ? "" : e.getMessage().toLowerCase(Locale.ROOT);
+        return msg.contains("cert_hash") || msg.contains("certificate hash")
+                || msg.contains("sha-1") || msg.contains("sha1")
+                || msg.contains("not authorized to use firebase authentication");
+    }
+
+    private static String googleError(@Nullable Exception e) {
+        return isCertHashError(e) ? ERR_CERT_HASH : authError(e);
     }
 
     /**

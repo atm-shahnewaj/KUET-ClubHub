@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_widget_card"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="14dp">
+
+    <!-- Date block -->
+    <LinearLayout
+        android:layout_width="64dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_widget_date"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_widget_month"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:alpha="0.9"
+            android:fontFamily="@font/plus_jakarta_sans_bold"
+            android:letterSpacing="0.1"
+            android:text="NOV"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:visibility="visible" />
+
+        <TextView
+            android:id="@+id/tv_widget_day"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/plus_jakarta_sans_extrabold"
+            android:includeFontPadding="false"
+            android:text="14"
+            android:textColor="@color/white"
+            android:textSize="28sp"
+            android:visibility="visible" />
+
+        <ImageView
+            android:id="@+id/iv_widget_icon"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_widget_calendar"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Details -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_widget_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/plus_jakarta_sans_bold"
+            android:letterSpacing="0.12"
+            android:maxLines="1"
+            android:text="@string/widget_label_next"
+            android:textColor="@color/widget_accent"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/tv_widget_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:fontFamily="@font/plus_jakarta_sans_bold"
+            android:maxLines="2"
+            android:text="Robotics Workshop"
+            android:textColor="@color/widget_title"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tv_widget_meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:fontFamily="@font/plus_jakarta_sans_medium"
+            android:maxLines="1"
+            android:text="Sat, 14 Nov, 3:00 PM · EEE Seminar Hall"
+            android:textColor="@color/widget_meta"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tv_widget_countdown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_widget_pill"
+            android:fontFamily="@font/plus_jakarta_sans_bold"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:text="In 6d 4h"
+            android:textColor="@color/widget_pill_text"
+            android:textSize="12sp"
+            android:visibility="visible" />
+    </LinearLayout>
+</LinearLayout>

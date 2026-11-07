@@ -15,6 +15,25 @@
         <item name="textInputStyle">@style/Widget.ClubHub.TextInputLayout</item>
         <item name="materialButtonStyle">@style/Widget.ClubHub.Button</item>
 
+        <!-- Font: Plus Jakarta Sans everywhere -->
+        <item name="android:fontFamily">@font/plus_jakarta_sans</item>
+        <item name="fontFamily">@font/plus_jakarta_sans</item>
+        <item name="textAppearanceDisplayLarge">@style/TextAppearance.ClubHub.DisplayLarge</item>
+        <item name="textAppearanceDisplayMedium">@style/TextAppearance.ClubHub.DisplayMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.ClubHub.DisplaySmall</item>
+        <item name="textAppearanceHeadlineLarge">@style/TextAppearance.ClubHub.HeadlineLarge</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.ClubHub.HeadlineMedium</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.ClubHub.HeadlineSmall</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.ClubHub.TitleLarge</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.ClubHub.TitleMedium</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.ClubHub.TitleSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.ClubHub.BodyLarge</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.ClubHub.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.ClubHub.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.ClubHub.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.ClubHub.LabelMedium</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.ClubHub.LabelSmall</item>
+
         <item name="colorPrimary">#6FDC95</item>
         <item name="colorOnPrimary">#00391A</item>
         <item name="colorPrimaryContainer">#00522A</item>

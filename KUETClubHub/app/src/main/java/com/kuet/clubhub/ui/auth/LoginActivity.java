@@ -1,11 +1,17 @@
 package com.kuet.clubhub.ui.auth;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.core.view.WindowCompat;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseUser;
 import com.kuet.clubhub.R;
@@ -16,6 +22,7 @@ import com.kuet.clubhub.data.UserRepository;
 import com.kuet.clubhub.databinding.ActivityLoginBinding;
 import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.ui.MainActivity;
+import com.kuet.clubhub.util.SigningCertificate;
 
 /**
  * Gmail-only authentication screen:
@@ -32,7 +39,9 @@ public class LoginActivity extends BaseActivity {
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         applyInsetsWithHeader(binding.getRoot(), binding.header);
-        useWhiteStatusBarIcons();
+        // The green hero runs under the status bar, so the icons stay light in both themes.
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView())
+                .setAppearanceLightStatusBars(true);
 
         binding.btnGoogleLogin.setOnClickListener(v -> attemptGoogleLogin());
         binding.btnLogin.setOnClickListener(v -> attemptGmailLogin());
@@ -70,9 +79,42 @@ public class LoginActivity extends BaseActivity {
             @Override
             public void onError(String message) {
                 setLoading(false);
+                if (UserRepository.ERR_CERT_HASH.equals(message)) {
+                    showCertificateHelp();
+                    return;
+                }
                 Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
             }
         });
+    }
+
+    /**
+     * Firebase only accepts Google sign-in from builds whose signing key is registered in the
+     * console. Show this build's fingerprints so they can be copied straight into Firebase.
+     */
+    private void showCertificateHelp() {
+        final String sha1 = SigningCertificate.fingerprint(this, "SHA-1");
+        final String sha256 = SigningCertificate.fingerprint(this, "SHA-256");
+        String message = getString(R.string.cert_help_message,
+                sha1 == null ? "-" : sha1, sha256 == null ? "-" : sha256);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.cert_help_title)
+                .setMessage(message)
+                .setPositiveButton(R.string.cert_help_copy_sha1, (d, w) -> copyToClipboard("SHA-1", sha1))
+                .setNeutralButton(R.string.cert_help_copy_sha256, (d, w) -> copyToClipboard("SHA-256", sha256))
+                .setNegativeButton(R.string.action_close, null)
+                .show();
+    }
+
+    private void copyToClipboard(String label, @Nullable String value) {
+        if (value == null) {
+            return;
+        }
+        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        if (cm != null) {
+            cm.setPrimaryClip(ClipData.newPlainText(label, value));
+            Toast.makeText(this, getString(R.string.cert_help_copied, label), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void attemptGmailLogin() {

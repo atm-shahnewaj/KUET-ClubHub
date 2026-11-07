@@ -21,32 +21,26 @@
                 android:id="@+id/header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginHorizontal="-20dp"
+                android:background="@drawable/bg_login_hero_light"
                 android:gravity="center_horizontal"
                 android:orientation="vertical"
                 android:paddingTop="24dp"
-                android:paddingBottom="16dp">
+                android:paddingBottom="48dp">
 
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="68dp"
-                    android:layout_height="68dp"
-                    app:cardBackgroundColor="#00A651"
-                    app:cardCornerRadius="20dp"
-                    app:cardElevation="4dp">
-
-                    <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:contentDescription="@string/logo_description"
-                        android:padding="12dp"
-                        android:src="@drawable/kuet_logo" />
-                </com.google.android.material.card.MaterialCardView>
+                <ImageView
+                    android:layout_width="160dp"
+                    android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/logo_description"
+                    android:src="@drawable/app_logo_light" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:text="@string/register_title"
-                    android:textColor="?attr/colorOnSurface"
+                    android:textColor="#0B1A12"
                     android:textSize="24sp"
                     android:textStyle="bold" />
 
@@ -55,13 +49,14 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:text="Link your @gmail.com account with your KUET ID"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="#2F6B45"
                     android:textSize="13sp" />
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="-28dp"
                 app:cardBackgroundColor="?attr/colorSurfaceContainerLowest"
                 app:cardCornerRadius="24dp"
                 app:cardElevation="3dp"
