@@ -54,16 +54,9 @@ public final class CalendarHelper {
         if (event == null || event.getStartTime() == null) {
             return RESULT_NO_CALENDAR_APP;
         }
-        if (hasCalendarPermission(context)) {
-            try {
-                int direct = insertDirectly(context.getContentResolver(), event);
-                if (direct == RESULT_INSERTED_DIRECTLY || direct == RESULT_ALREADY_EXISTS) {
-                    return direct;
-                }
-            } catch (SecurityException | IllegalArgumentException ignored) {
-                // Fall back to the calendar app's insert screen below.
-            }
-        }
+        // Direct writes into CalendarContract depend on the phone's calendar accounts and often
+        // "succeed" without the event ever appearing, so the reliable route is the calendar app's
+        // own pre-filled "new event" screen (no permission needed, the user confirms with Save).
         return openInsertIntent(context, event);
     }
 
@@ -73,9 +66,13 @@ public final class CalendarHelper {
         long endMillis = event.getEndTime() != null
                 ? event.getEndTime().getTime()
                 : startMillis + DEFAULT_DURATION_MS;
+        if (endMillis <= startMillis) {
+            endMillis = startMillis + DEFAULT_DURATION_MS;
+        }
 
         Intent intent = new Intent(Intent.ACTION_INSERT)
                 .setData(CalendarContract.Events.CONTENT_URI)
+                .putExtra(CalendarContract.EXTRA_EVENT_ALL_DAY, false)
                 .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startMillis)
                 .putExtra(CalendarContract.EXTRA_EVENT_END_TIME, endMillis)
                 .putExtra(CalendarContract.Events.TITLE, safe(event.getTitle()))
@@ -85,7 +82,14 @@ public final class CalendarHelper {
             context.startActivity(intent);
             return RESULT_OPENED_CALENDAR_APP;
         } catch (ActivityNotFoundException e) {
-            return RESULT_NO_CALENDAR_APP;
+            // No app handles "insert event": at least open the calendar on that day.
+            try {
+                Uri day = Uri.parse("content://com.android.calendar/time/" + startMillis);
+                context.startActivity(new Intent(Intent.ACTION_VIEW, day));
+                return RESULT_OPENED_CALENDAR_APP;
+            } catch (ActivityNotFoundException e2) {
+                return RESULT_NO_CALENDAR_APP;
+            }
         }
     }
 

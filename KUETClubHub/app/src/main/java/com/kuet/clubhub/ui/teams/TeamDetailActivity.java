@@ -231,6 +231,7 @@ public class TeamDetailActivity extends BaseActivity implements RowAdapter.Liste
             boolean leader = uid.equals(team.getLeaderUid());
             RowAdapter.Row row = RowAdapter.Row.item("m:" + uid)
                     .avatar(RowAdapter.Row.initial(name))
+                    .uid(uid)
                     .title(name)
                     .subtitle(skills == null || skills.isEmpty()
                             ? getString(R.string.no_skills_listed) : Interests.join(skills))
@@ -293,6 +294,7 @@ public class TeamDetailActivity extends BaseActivity implements RowAdapter.Liste
         for (Scored sc : scored.subList(0, Math.min(MAX_SUGGESTIONS, scored.size()))) {
             rows.add(RowAdapter.Row.item("s:" + sc.seeker.getUid())
                     .avatar(RowAdapter.Row.initial(sc.seeker.getName()))
+                    .uid(sc.seeker.getUid())
                     .title(sc.seeker.getName())
                     .subtitle(MatchText.explain(this, sc.match))
                     .pill(getString(R.string.match_points, sc.match.score), RowAdapter.PILL_GREEN)

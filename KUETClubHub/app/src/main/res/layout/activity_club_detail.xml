@@ -293,7 +293,6 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_leave_club"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
@@ -310,7 +309,6 @@
                     <!-- Prominent Club Group Chat Button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_club_chat"
-                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
@@ -387,7 +385,6 @@
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btn_post_notice"
-                                style="@style/Widget.Material3.Button.TonalButton"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="6dp"
@@ -412,7 +409,6 @@
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btn_members"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="6dp"
@@ -428,7 +424,6 @@
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btn_edit"
-                                style="@style/Widget.Material3.Button.OutlinedButton"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="6dp"
@@ -609,7 +604,6 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_empty_create_event"
-                            style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
@@ -719,7 +713,6 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_add_notice_inline"
-                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:insetTop="0dp"
@@ -799,7 +792,6 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_explore_events"
-                            style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
@@ -876,7 +868,6 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_open_members_directory"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"

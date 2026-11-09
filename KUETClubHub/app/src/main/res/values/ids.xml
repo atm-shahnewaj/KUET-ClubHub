@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tag key: which user an avatar ImageView is currently showing (guards RecyclerView reuse). -->
+    <item name="tag_avatar_uid" type="id" />
+</resources>

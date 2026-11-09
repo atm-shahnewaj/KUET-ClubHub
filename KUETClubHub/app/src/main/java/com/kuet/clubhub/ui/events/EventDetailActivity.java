@@ -397,9 +397,23 @@ public class EventDetailActivity extends BaseActivity {
                         binding.tvWeatherBadge.setVisibility(View.VISIBLE);
                         binding.tvWeatherBadge.setText(getString(R.string.weather_temp_badge,
                                 f.getTempMinC(), f.getTempMaxC()));
+                        String dateLabel = f.getDate();
+                        try {
+                            java.util.Date d = new java.text.SimpleDateFormat(
+                                    "yyyy-MM-dd", java.util.Locale.ENGLISH).parse(f.getDate());
+                            if (d != null) {
+                                dateLabel = new java.text.SimpleDateFormat(
+                                        "EEEE, d MMMM yyyy", java.util.Locale.ENGLISH).format(d);
+                            }
+                        } catch (java.text.ParseException ignored) {
+                            // keep the raw yyyy-MM-dd text
+                        }
                         binding.tvWeatherSummary.setText(getString(R.string.weather_summary_line,
                                 f.getCondition(), f.getTempMaxC(), f.getTempMinC()));
-                        String detail = getString(R.string.weather_detail_line,
+                        String detail = getString(f.isExactEventDate()
+                                        ? R.string.weather_for_date_event
+                                        : R.string.weather_for_date_today, dateLabel)
+                                + "\n" + getString(R.string.weather_detail_line,
                                 f.getRainChancePercent(), f.getWindMaxKmh());
                         if (!f.isExactEventDate()) {
                             detail = detail + "\n" + getString(R.string.weather_beyond_horizon_note);
@@ -545,14 +559,7 @@ public class EventDetailActivity extends BaseActivity {
         if (current == null || current.getStartTime() == null) {
             return;
         }
-        if (CalendarHelper.hasCalendarPermission(this)) {
-            performAddToCalendar();
-        } else {
-            calendarPermissionLauncher.launch(new String[]{
-                    Manifest.permission.READ_CALENDAR,
-                    Manifest.permission.WRITE_CALENDAR
-            });
-        }
+        performAddToCalendar();
     }
 
     private void performAddToCalendar() {

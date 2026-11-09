@@ -420,6 +420,7 @@ public class TeamsActivity extends BaseActivity implements RowAdapter.Listener {
             }
             RowAdapter.Row row = RowAdapter.Row.item(s.getUid())
                     .avatar(RowAdapter.Row.initial(s.getName()))
+                    .uid(s.getUid())
                     .title(s.getName())
                     .subtitle(sub.toString())
                     .tag(s);

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shrinks the logo to ~72% so the whole logo and the "ClubHub" text stay inside the
+     adaptive-icon safe zone (circle / squircle masks no longer cut the sides). -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_launcher_foreground"
+    android:inset="14%" />

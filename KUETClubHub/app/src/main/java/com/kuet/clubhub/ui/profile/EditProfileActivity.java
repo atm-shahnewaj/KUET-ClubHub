@@ -175,6 +175,7 @@ public class EditProfileActivity extends BaseActivity {
                         profile.setSkills(skills);
                         profile.setInterests(interests);
                         profile.setPhotoBase64(photoBase64);
+                        com.kuet.clubhub.util.UserPhotos.put(profile.getUid(), photoBase64);
                         session.save(profile);
                         if (interestsChanged) {
                             NotificationPrefs.resetBaseline(EditProfileActivity.this);

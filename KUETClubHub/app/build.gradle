@@ -56,6 +56,11 @@ dependencies {
     implementation 'com.google.firebase:firebase-firestore'
     implementation 'com.google.firebase:firebase-database'
 
+    // Native "Sign in with Google" bottom sheet (Credential Manager)
+    implementation 'androidx.credentials:credentials:1.5.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.5.0'
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
+
     // Local unit tests (the team matcher)
     testImplementation 'junit:junit:4.13.2'
 }

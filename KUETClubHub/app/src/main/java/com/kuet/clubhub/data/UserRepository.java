@@ -5,6 +5,15 @@ import android.content.Context;
 import android.util.Patterns;
 
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+import androidx.credentials.Credential;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.CustomCredential;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialCancellationException;
+import androidx.credentials.exceptions.GetCredentialException;
 
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseNetworkException;
@@ -16,6 +25,10 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.firebase.auth.OAuthProvider;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
@@ -63,6 +76,55 @@ public final class UserRepository {
      * once Google Sign-In is enabled in Firebase Console -> Authentication -> Sign-in method).
      */
     public static void signInWithGoogle(Activity activity, Callback<FirebaseUser> cb) {
+        int id = activity.getResources().getIdentifier(
+                "default_web_client_id", "string", activity.getPackageName());
+        if (id == 0) {
+            signInWithGoogleBrowser(activity, cb);
+            return;
+        }
+        GetCredentialRequest request = new GetCredentialRequest.Builder()
+                .addCredentialOption(new GetSignInWithGoogleOption.Builder(
+                        activity.getString(id)).build())
+                .build();
+        CredentialManager.create(activity).getCredentialAsync(
+                activity, request, null, ContextCompat.getMainExecutor(activity),
+                new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                    @Override
+                    public void onResult(GetCredentialResponse response) {
+                        Credential c = response.getCredential();
+                        if (c instanceof CustomCredential && GoogleIdTokenCredential
+                                .TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(c.getType())) {
+                            String token = GoogleIdTokenCredential
+                                    .createFrom(c.getData()).getIdToken();
+                            AuthCredential cred = GoogleAuthProvider.getCredential(token, null);
+                            FirebaseAuth.getInstance().signInWithCredential(cred)
+                                    .addOnSuccessListener(r -> {
+                                        if (r != null && r.getUser() != null) {
+                                            cb.onSuccess(r.getUser());
+                                        } else {
+                                            cb.onError("Google sign-in did not return an account.");
+                                        }
+                                    })
+                                    .addOnFailureListener(e -> cb.onError(googleError(e)));
+                        } else {
+                            signInWithGoogleBrowser(activity, cb);
+                        }
+                    }
+
+                    @Override
+                    public void onError(GetCredentialException e) {
+                        if (e instanceof GetCredentialCancellationException) {
+                            cb.onError("Sign-in cancelled.");
+                        } else {
+                            // Native flow unavailable (no Play services, no account...): use browser.
+                            signInWithGoogleBrowser(activity, cb);
+                        }
+                    }
+                });
+    }
+
+    /** Fallback: web-based Google OAuth through Firebase (opens a Custom Tab). */
+    private static void signInWithGoogleBrowser(Activity activity, Callback<FirebaseUser> cb) {
         FirebaseAuth auth = FirebaseAuth.getInstance();
         Task<AuthResult> pending = auth.getPendingAuthResult();
         if (pending != null) {

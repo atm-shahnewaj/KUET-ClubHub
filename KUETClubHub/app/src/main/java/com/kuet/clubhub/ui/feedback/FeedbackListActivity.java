@@ -117,6 +117,7 @@ public class FeedbackListActivity extends BaseActivity implements RowAdapter.Lis
             String text = stars(e.getRating()) + (comment.isEmpty() ? "" : "\n" + comment);
             rows.add(RowAdapter.Row.item(e.getUid())
                     .avatar(RowAdapter.Row.initial(e.getName()))
+                    .uid(e.getUid())
                     .title(e.getName())
                     .subtitle(text)
                     .pill(e.getUpdatedAt() == null ? "" : TimeFormats.monthShort(e.getUpdatedAt())

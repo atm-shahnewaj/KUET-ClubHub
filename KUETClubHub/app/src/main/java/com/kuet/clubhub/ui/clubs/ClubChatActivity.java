@@ -320,8 +320,8 @@ public class ClubChatActivity extends BaseActivity {
                 holder.binding.rowOutgoing.setVisibility(View.GONE);
                 String sName = m.getSenderName() == null || m.getSenderName().isEmpty()
                         ? "Member" : m.getSenderName();
-                holder.binding.tvSenderAvatar.setText(
-                        sName.substring(0, 1).toUpperCase(Locale.ROOT));
+                com.kuet.clubhub.util.UserPhotos.bind(holder.binding.ivSenderPhoto,
+                        holder.binding.tvSenderAvatar, m.getSenderUid(), sName);
                 holder.binding.tvSenderName.setText(sName);
                 String dept = m.getSenderDepartment() == null ? "" : m.getSenderDepartment();
                 String role = m.getSenderRole() == null ? "Member" : m.getSenderRole();

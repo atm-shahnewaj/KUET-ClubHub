@@ -81,6 +81,9 @@ public class EventsFragment extends Fragment {
 
         visibleMonth.set(Calendar.DAY_OF_MONTH, 1);
         selectedDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
+        if (savedInstanceState != null) {
+            restoreUiState(savedInstanceState);
+        }
 
         adapter = new EventAdapter(true, this::openEvent);
         binding.recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -94,7 +97,8 @@ public class EventsFragment extends Fragment {
         setupSearchAndChips();
         setupCalendar();
 
-        binding.toggleView.check(R.id.btn_view_list);
+        binding.toggleView.check(myEventsMode ? R.id.btn_view_mine
+                : calendarMode ? R.id.btn_view_calendar : R.id.btn_view_list);
         binding.toggleView.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
             if (isChecked) {
                 calendarMode = checkedId == R.id.btn_view_calendar;
@@ -173,6 +177,46 @@ public class EventsFragment extends Fragment {
         }
     }
 
+    private static final String S_QUERY = "ev_query";
+    private static final String S_TYPE = "ev_type";
+    private static final String S_CAL = "ev_cal";
+    private static final String S_MINE = "ev_mine";
+    private static final String S_YEAR = "ev_year";
+    private static final String S_MONTH = "ev_month";
+    private static final String S_DAY = "ev_day";
+
+    /** Keeps search, filter, view mode and calendar position across rotation / process death. */
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(S_QUERY, query);
+        outState.putString(S_TYPE, typeFilter == null ? null : typeFilter.name());
+        outState.putBoolean(S_CAL, calendarMode);
+        outState.putBoolean(S_MINE, myEventsMode);
+        outState.putInt(S_YEAR, visibleMonth.get(Calendar.YEAR));
+        outState.putInt(S_MONTH, visibleMonth.get(Calendar.MONTH));
+        outState.putInt(S_DAY, selectedDay);
+    }
+
+    private void restoreUiState(@NonNull Bundle in) {
+        query = in.getString(S_QUERY, "");
+        String type = in.getString(S_TYPE);
+        typeFilter = null;
+        if (type != null) {
+            try {
+                typeFilter = EventType.valueOf(type);
+            } catch (IllegalArgumentException ignored) {
+                typeFilter = null;
+            }
+        }
+        calendarMode = in.getBoolean(S_CAL, false);
+        myEventsMode = in.getBoolean(S_MINE, false);
+        visibleMonth.set(Calendar.DAY_OF_MONTH, 1);
+        visibleMonth.set(Calendar.YEAR, in.getInt(S_YEAR, visibleMonth.get(Calendar.YEAR)));
+        visibleMonth.set(Calendar.MONTH, in.getInt(S_MONTH, visibleMonth.get(Calendar.MONTH)));
+        selectedDay = in.getInt(S_DAY, selectedDay);
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -198,10 +242,10 @@ public class EventsFragment extends Fragment {
             }
         });
 
-        addChip(getString(R.string.chip_all), null, 0, true);
+        addChip(getString(R.string.chip_all), null, 0, typeFilter == null);
         EventType[] types = EventType.values();
         for (int i = 0; i < types.length; i++) {
-            addChip(types[i].getLabel(), types[i], i + 1, false);
+            addChip(types[i].getLabel(), types[i], i + 1, types[i] == typeFilter);
         }
         binding.chipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.isEmpty()) {

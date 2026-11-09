@@ -12,6 +12,18 @@
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
+    <!-- Lets the app see calendar apps on Android 11+ (for "Add to calendar"). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.INSERT" />
+            <data android:mimeType="vnd.android.cursor.dir/event" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="content" android:host="com.android.calendar" />
+        </intent>
+    </queries>
+
     <!-- The camera is only needed for QR check-in; phones without one can still install the app. -->
     <uses-feature
         android:name="android.hardware.camera.any"

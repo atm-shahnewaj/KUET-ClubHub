@@ -38,6 +38,7 @@ public class RowAdapter extends ListAdapter<RowAdapter.Row, RecyclerView.ViewHol
         String title = "";
         String subtitle = "";
         String avatar = "";
+        String uid = "";
         String pill = "";
         int pillStyle = PILL_NONE;
         String primary = "";
@@ -64,6 +65,8 @@ public class RowAdapter extends ListAdapter<RowAdapter.Row, RecyclerView.ViewHol
         public Row title(String v) { title = nz(v); return this; }
         public Row subtitle(String v) { subtitle = nz(v); return this; }
         public Row avatar(String v) { avatar = nz(v); return this; }
+        /** The user this row is about; their profile picture replaces the initial when they have one. */
+        public Row uid(String v) { uid = nz(v); return this; }
         public Row pill(String text, int style) { pill = nz(text); pillStyle = style; return this; }
         public Row primary(String label) { primary = nz(label); return this; }
         public Row secondary(String label) { secondary = nz(label); return this; }
@@ -102,6 +105,7 @@ public class RowAdapter extends ListAdapter<RowAdapter.Row, RecyclerView.ViewHol
             return Objects.equals(a.title, b.title)
                     && Objects.equals(a.subtitle, b.subtitle)
                     && Objects.equals(a.avatar, b.avatar)
+                    && Objects.equals(a.uid, b.uid)
                     && Objects.equals(a.pill, b.pill)
                     && a.pillStyle == b.pillStyle
                     && Objects.equals(a.primary, b.primary)
@@ -160,6 +164,8 @@ public class RowAdapter extends ListAdapter<RowAdapter.Row, RecyclerView.ViewHol
         }
 
         void bind(Row row, Listener listener) {
+            com.kuet.clubhub.util.UserPhotos.bind(binding.ivAvatarPhoto, binding.tvAvatar,
+                    row.uid.isEmpty() ? null : row.uid, null);
             binding.tvAvatar.setText(row.avatar);
             binding.tvTitle.setText(row.title);
             binding.tvSubtitle.setText(row.subtitle);

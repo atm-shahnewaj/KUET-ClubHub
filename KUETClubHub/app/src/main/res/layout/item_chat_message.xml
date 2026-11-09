@@ -18,16 +18,31 @@
                         android:orientation="horizontal"
         android:visibility="gone">
 
-        <TextView
-            android:id="@+id/tv_sender_avatar"
+        <FrameLayout
             android:layout_width="36dp"
             android:layout_height="36dp"
-            android:layout_marginTop="2dp"
-            android:background="@drawable/bg_avatar"
-            android:gravity="center"
-            android:textColor="@color/white"
-            android:textSize="15sp"
-            android:textStyle="bold" />
+            android:layout_marginTop="2dp">
+
+            <TextView
+                android:id="@+id/tv_sender_avatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_avatar"
+                android:gravity="center"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/iv_sender_photo"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_avatar"
+                android:clipToOutline="true"
+                android:contentDescription="@null"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+        </FrameLayout>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_incoming"

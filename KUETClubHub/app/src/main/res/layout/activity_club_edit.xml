@@ -83,7 +83,6 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_upload_logo"
-                            style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                         android:maxLines="1"

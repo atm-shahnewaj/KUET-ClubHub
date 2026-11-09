@@ -84,9 +84,9 @@ public class MonthCalendarView extends View {
         dayPaint.setTextSize(15 * density);
         labelPaint.setTextAlign(Paint.Align.CENTER);
         labelPaint.setTextSize(12 * density);
-        Typeface bold = ResourcesCompat.getFont(context, R.font.plus_jakarta_sans_bold);
+        Typeface bold = ResourcesCompat.getFont(context, R.font.inter_bold);
         labelPaint.setTypeface(bold != null ? bold : Typeface.DEFAULT_BOLD);
-        Typeface regular = ResourcesCompat.getFont(context, R.font.plus_jakarta_sans_medium);
+        Typeface regular = ResourcesCompat.getFont(context, R.font.inter_medium);
         if (regular != null) {
             dayRegular = regular;
         }

@@ -685,6 +685,7 @@ public class ClubDetailActivity extends BaseActivity {
             String sub = dept + (m.getYear() > 0 ? "  •  " + Years.label(m.getYear()) : "");
             rows.add(RowAdapter.Row.item(m.getUid())
                     .avatar(RowAdapter.Row.initial(m.getName()))
+                    .uid(m.getUid())
                     .title(m.getName())
                     .subtitle(sub)
                     .pill("Member", RowAdapter.PILL_GREEN));

@@ -135,6 +135,7 @@ public class ClubMembersActivity extends BaseActivity implements RowAdapter.List
             }
             RowAdapter.Row row = RowAdapter.Row.item(m.getUid())
                     .avatar(RowAdapter.Row.initial(m.getName()))
+                    .uid(m.getUid())
                     .title(m.getName())
                     .subtitle(details)
                     .tag(m);

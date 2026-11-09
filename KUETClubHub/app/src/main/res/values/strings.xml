@@ -581,12 +581,19 @@
     <string name="msg_calendar_already_added">This event is already in your phone calendar.</string>
     <string name="msg_no_calendar_app">No calendar app found on this phone.</string>
 
+    <string name="airplane_on_title">Airplane mode is on</string>
+    <string name="airplane_on_message">You are offline, so live data has paused:\n\n\u2022 Club chat and Q&amp;A won\u2019t send or update\n\u2022 New events, notices and registrations won\u2019t sync\n\u2022 Check-in and registering need a connection\n\nYour saved events and your QR pass still open offline. Everything catches up when you turn airplane mode off.</string>
+    <string name="airplane_keep_offline">Continue offline</string>
+    <string name="airplane_open_settings">Turn it off</string>
+    <string name="airplane_off_toast">Airplane mode is off. Reconnecting and syncing live data\u2026</string>
     <string name="label_weather">Campus weather (KUET)</string>
     <string name="weather_loading">Loading forecast for KUET campus…</string>
     <string name="weather_temp_badge">%1$d° – %2$d°C</string>
     <string name="weather_summary_line">%1$s · High %2$d°C, low %3$d°C</string>
     <string name="weather_detail_line">Rain chance: %1$d%% · Max wind: %2$d km/h (Khulna)</string>
-    <string name="weather_beyond_horizon_note">Showing today\u2019s campus weather (event is more than 16 days away).</string>
+    <string name="weather_beyond_horizon_note">No forecast is available for the event date, so today\u2019s campus weather is shown instead.</string>
+    <string name="weather_for_date_event">Forecast for the event day: %1$s</string>
+    <string name="weather_for_date_today">Forecast for today: %1$s</string>
     <string name="action_retry">Try Again</string>
 
     <string name="widget_title">Next registered event</string>

@@ -73,6 +73,8 @@ public class ParticipantAdapter
             String name = p.getName() == null ? "" : p.getName();
             binding.tvAvatar.setText(name.isEmpty() ? "?"
                     : name.substring(0, 1).toUpperCase(Locale.ROOT));
+            com.kuet.clubhub.util.UserPhotos.bind(binding.ivAvatarPhoto, binding.tvAvatar,
+                    p.getUid(), name);
             binding.tvName.setText(name);
 
             String details = p.getStudentId() + "  •  " + p.getDepartment();

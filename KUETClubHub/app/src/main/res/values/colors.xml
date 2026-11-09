@@ -18,7 +18,7 @@
 
     <color name="ic_launcher_background">#0B1A12</color>
 
-    <!-- Home screen widget (follows the system light/dark setting) -->
+    <!-- Home screen widget (always light, regardless of the system light/dark setting) -->
     <color name="widget_surface">#FFFFFF</color>
     <color name="widget_stroke">#D5E3D9</color>
     <color name="widget_title">#181D19</color>
