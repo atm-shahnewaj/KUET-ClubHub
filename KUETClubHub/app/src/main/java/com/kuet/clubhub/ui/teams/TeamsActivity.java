@@ -28,6 +28,7 @@ import com.kuet.clubhub.model.Seeker;
 import com.kuet.clubhub.model.Team;
 import com.kuet.clubhub.model.TeamInvite;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.notify.ToastCenter;
 import com.kuet.clubhub.ui.common.RowAdapter;
 import com.kuet.clubhub.ui.scan.ScanActivity;
 import com.kuet.clubhub.util.Interests;
@@ -77,6 +78,7 @@ public class TeamsActivity extends BaseActivity implements RowAdapter.Listener {
     private final ActivityResultLauncher<Intent> scanLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK) {
+                    ToastCenter.show(this, R.string.msg_team_joined);
                     Snackbar.make(binding.getRoot(), R.string.msg_team_joined, Snackbar.LENGTH_LONG).show();
                 }
             });
@@ -469,6 +471,8 @@ public class TeamsActivity extends BaseActivity implements RowAdapter.Listener {
                         new Callback<String>() {
                             @Override
                             public void onSuccess(String teamId) {
+                                ToastCenter.showShort(TeamsActivity.this,
+                                        "Team \u201C" + name + "\u201D created!");
                                 openTeam(teamId);
                             }
 
@@ -504,6 +508,7 @@ public class TeamsActivity extends BaseActivity implements RowAdapter.Listener {
         return new Callback<Void>() {
             @Override
             public void onSuccess(Void result) {
+                ToastCenter.show(TeamsActivity.this, R.string.msg_team_joined);
                 Snackbar.make(binding.getRoot(), R.string.msg_team_joined, Snackbar.LENGTH_LONG).show();
             }
 
@@ -528,7 +533,17 @@ public class TeamsActivity extends BaseActivity implements RowAdapter.Listener {
         } else if (tab == TAB_PEOPLE && row.tag instanceof Boolean) {
             boolean posted = (Boolean) row.tag;
             if (posted) {
-                TeamRepository.removeSeeker(eventId, profile.getUid(), quiet());
+                TeamRepository.removeSeeker(eventId, profile.getUid(), new Callback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        ToastCenter.showShort(TeamsActivity.this, "Teammate request removed.");
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        showError(message);
+                    }
+                });
             } else {
                 askForPostNote();
             }
@@ -539,9 +554,9 @@ public class TeamsActivity extends BaseActivity implements RowAdapter.Listener {
                 TeamRepository.invite(mine, s.getUid(), new Callback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
-                        Snackbar.make(binding.getRoot(),
-                                getString(R.string.msg_invite_sent, s.getName()),
-                                Snackbar.LENGTH_SHORT).show();
+                        String msg = getString(R.string.msg_invite_sent, s.getName());
+                        ToastCenter.showShort(TeamsActivity.this, msg);
+                        Snackbar.make(binding.getRoot(), msg, Snackbar.LENGTH_SHORT).show();
                     }
 
                     @Override
@@ -558,7 +573,19 @@ public class TeamsActivity extends BaseActivity implements RowAdapter.Listener {
     @Override
     public void onSecondary(RowAdapter.Row row) {
         if (tab == TAB_INVITES && row.tag instanceof TeamInvite) {
-            TeamRepository.declineInvite(profile.getUid(), ((TeamInvite) row.tag).getTeamId(), quiet());
+            TeamInvite inv = (TeamInvite) row.tag;
+            TeamRepository.declineInvite(profile.getUid(), inv.getTeamId(), new Callback<Void>() {
+                @Override
+                public void onSuccess(Void result) {
+                    ToastCenter.showShort(TeamsActivity.this,
+                            "Declined invitation from " + inv.getTeamName() + ".");
+                }
+
+                @Override
+                public void onError(String message) {
+                    showError(message);
+                }
+            });
         }
     }
 
@@ -573,7 +600,18 @@ public class TeamsActivity extends BaseActivity implements RowAdapter.Listener {
                 .setPositiveButton(R.string.action_post_request, (d, w) -> {
                     String note = input.etText.getText() == null ? ""
                             : input.etText.getText().toString().trim();
-                    TeamRepository.postSeeker(eventId, profile, note, quiet());
+                    TeamRepository.postSeeker(eventId, profile, note, new Callback<Void>() {
+                        @Override
+                        public void onSuccess(Void result) {
+                            ToastCenter.showShort(TeamsActivity.this,
+                                    "Your looking-for-team request is now live!");
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            showError(message);
+                        }
+                    });
                 })
                 .show();
     }
@@ -599,6 +637,7 @@ public class TeamsActivity extends BaseActivity implements RowAdapter.Listener {
     }
 
     private void showError(String message) {
+        ToastCenter.show(this, message);
         if (binding != null) {
             Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
         }

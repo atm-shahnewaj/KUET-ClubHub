@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Square QR frame drawn over the camera preview. Smaller in landscape so it always fits. -->
+    <dimen name="scan_frame_size">260dp</dimen>
+</resources>

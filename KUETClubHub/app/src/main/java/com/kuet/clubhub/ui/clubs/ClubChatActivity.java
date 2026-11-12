@@ -28,6 +28,9 @@ import com.kuet.clubhub.model.Club;
 import com.kuet.clubhub.model.ClubMember;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.notify.RealtimeToastWatcher;
+import com.kuet.clubhub.notify.ToastCenter;
+import com.kuet.clubhub.util.NotificationPrefs;
 import com.kuet.clubhub.util.TimeFormats;
 
 import java.util.ArrayList;
@@ -38,6 +41,7 @@ import java.util.Locale;
 /**
  * Members-Only Club Group Chat powered by Firebase Realtime Database (`club_chats/{clubId}/messages`).
  * Only approved club members, organizers of this club, and admins can view and post messages.
+ * Includes a per-club mute switch for offline/background chat and @mention notifications.
  */
 public class ClubChatActivity extends BaseActivity {
 
@@ -81,6 +85,9 @@ public class ClubChatActivity extends BaseActivity {
                 ? "Club Group Chat" : clubName + " Chat");
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
+        updateMuteBadge();
+        binding.tvMuteChat.setOnClickListener(v -> toggleMuteChat());
+
         adapter = new ChatAdapter();
         LinearLayoutManager lm = new LinearLayoutManager(this);
         lm.setStackFromEnd(true);
@@ -97,12 +104,35 @@ public class ClubChatActivity extends BaseActivity {
         });
     }
 
+    private void updateMuteBadge() {
+        if (binding == null || clubId == null) {
+            return;
+        }
+        boolean muted = NotificationPrefs.isClubChatMuted(this, clubId);
+        binding.tvMuteChat.setText(muted ? "Muted" : "Alerts On");
+        binding.tvMuteChat.setBackgroundResource(muted
+                ? R.drawable.bg_pill_alert : R.drawable.bg_pill_neutral);
+    }
+
+    private void toggleMuteChat() {
+        boolean nowMuted = !NotificationPrefs.isClubChatMuted(this, clubId);
+        NotificationPrefs.setClubChatMuted(this, clubId, nowMuted);
+        updateMuteBadge();
+        String label = clubName == null || clubName.isEmpty() ? "this club" : clubName;
+        ToastCenter.showShort(this, nowMuted
+                ? "Muted chat notifications for " + label + "."
+                : "Chat & mention notifications enabled for " + label + ".");
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
         if (clubId == null || profile == null) {
             return;
         }
+        RealtimeToastWatcher.getInstance(this).setActiveOpenChatClubId(clubId);
+        updateMuteBadge();
+
         clubReg = ClubRepository.getInstance(this).listenClub(clubId, new ClubRepository.ClubListener() {
             @Override
             public void onClub(Club club) {
@@ -152,6 +182,7 @@ public class ClubChatActivity extends BaseActivity {
 
     @Override
     protected void onStop() {
+        RealtimeToastWatcher.getInstance(this).setActiveOpenChatClubId(null);
         super.onStop();
         if (clubReg != null) {
             clubReg.remove();
@@ -232,6 +263,7 @@ public class ClubChatActivity extends BaseActivity {
                 @Override
                 public void onError(String message) {
                     if (!isDestroyed() && binding != null) {
+                        ToastCenter.show(ClubChatActivity.this, message);
                         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
                     }
                 }
@@ -241,6 +273,7 @@ public class ClubChatActivity extends BaseActivity {
 
     private void sendMessage() {
         if (!canAccessChat()) {
+            ToastCenter.showShort(this, "Only approved club members can send messages.");
             Snackbar.make(binding.getRoot(),
                     "Only approved club members can send messages.", Snackbar.LENGTH_SHORT).show();
             return;
@@ -254,12 +287,16 @@ public class ClubChatActivity extends BaseActivity {
         ClubChatRepository.send(this, clubId, profile, myRoleBadge(), text, new Callback<Void>() {
             @Override
             public void onSuccess(Void result) {
-                // Realtime listener updates automatically
+                if (text.contains("@")) {
+                    ToastCenter.showShort(ClubChatActivity.this,
+                            "Message sent with mention in " + (clubName == null ? "chat" : clubName) + ".");
+                }
             }
 
             @Override
             public void onError(String message) {
                 if (!isDestroyed() && binding != null) {
+                    ToastCenter.show(ClubChatActivity.this, message);
                     Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
                 }
             }
@@ -275,6 +312,7 @@ public class ClubChatActivity extends BaseActivity {
                         ClubChatRepository.delete(this, clubId, msg.getId(), new Callback<Void>() {
                             @Override
                             public void onSuccess(Void result) {
+                                ToastCenter.showShort(ClubChatActivity.this, "Message deleted.");
                             }
 
                             @Override

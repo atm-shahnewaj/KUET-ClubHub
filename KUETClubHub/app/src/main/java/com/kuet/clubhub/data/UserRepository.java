@@ -37,6 +37,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.notify.AlertController;
+import com.kuet.clubhub.notify.RealtimeToastWatcher;
 import com.kuet.clubhub.util.NotificationPrefs;
 
 import java.util.ArrayList;
@@ -370,6 +371,7 @@ public final class UserRepository {
     }
 
     public static void logout(Context context) {
+        RealtimeToastWatcher.getInstance(context).stopAll();
         AlertController.stopAll(context);
         ScheduleSync.clearAll(context);
         NotificationPrefs.clearSession(context);

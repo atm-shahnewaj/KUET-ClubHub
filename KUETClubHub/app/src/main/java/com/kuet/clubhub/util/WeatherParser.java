@@ -2,6 +2,10 @@ package com.kuet.clubhub.util;
 
 import com.kuet.clubhub.model.WeatherForecast;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -9,8 +13,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Pure-Java JSON parser and WMO weather-code mapper for the Open-Meteo daily forecast endpoint.
- * Implemented without Android framework dependencies so unit tests run directly under JUnit.
+ * Parses the Open-Meteo daily forecast JSON with {@code org.json} ({@link JSONObject} and
+ * {@link JSONArray}) and maps WMO weather codes to readable descriptions. The unit tests run
+ * under plain JUnit using the {@code org.json:json} test dependency.
  */
 public final class WeatherParser {
 
@@ -35,26 +40,25 @@ public final class WeatherParser {
         if (json == null || json.isEmpty()) {
             return null;
         }
-        String dailyBlock = extractObject(json, "\"daily\"");
-        if (dailyBlock == null) {
+        final JSONObject daily;
+        try {
+            daily = new JSONObject(json).optJSONObject("daily");
+        } catch (JSONException e) {
+            return null;
+        }
+        if (daily == null) {
             return null;
         }
 
-        List<String> dates = extractStringArray(dailyBlock, "\"time\"");
-        if (dates.isEmpty()) {
+        JSONArray dates = daily.optJSONArray("time");
+        if (dates == null || dates.length() == 0) {
             return null;
         }
-        List<Double> codes = extractNumberArray(dailyBlock, "\"weather_code\"");
-        if (codes.isEmpty()) {
-            codes = extractNumberArray(dailyBlock, "\"weathercode\"");
-        }
-        List<Double> maxTemps = extractNumberArray(dailyBlock, "\"temperature_2m_max\"");
-        List<Double> minTemps = extractNumberArray(dailyBlock, "\"temperature_2m_min\"");
-        List<Double> rainProbs = extractNumberArray(dailyBlock, "\"precipitation_probability_max\"");
-        List<Double> winds = extractNumberArray(dailyBlock, "\"wind_speed_10m_max\"");
-        if (winds.isEmpty()) {
-            winds = extractNumberArray(dailyBlock, "\"windspeed_10m_max\"");
-        }
+        List<Double> codes = numbers(daily, "weather_code", "weathercode");
+        List<Double> maxTemps = numbers(daily, "temperature_2m_max");
+        List<Double> minTemps = numbers(daily, "temperature_2m_min");
+        List<Double> rainProbs = numbers(daily, "precipitation_probability_max");
+        List<Double> winds = numbers(daily, "wind_speed_10m_max", "windspeed_10m_max");
 
         if (maxTemps.isEmpty() || minTemps.isEmpty()) {
             return null;
@@ -63,8 +67,8 @@ public final class WeatherParser {
         int index = 0;
         boolean exact = false;
         if (targetIsoDate != null && !targetIsoDate.isEmpty()) {
-            for (int i = 0; i < dates.size(); i++) {
-                if (targetIsoDate.equals(dates.get(i))) {
+            for (int i = 0; i < dates.length(); i++) {
+                if (targetIsoDate.equals(dates.optString(i))) {
                     index = i;
                     exact = true;
                     break;
@@ -72,7 +76,7 @@ public final class WeatherParser {
             }
         }
 
-        String date = dates.get(index);
+        String date = dates.optString(index);
         int code = index < codes.size() ? (int) Math.round(codes.get(index)) : 0;
         int maxC = (int) Math.round(maxTemps.get(Math.min(index, maxTemps.size() - 1)));
         int minC = (int) Math.round(minTemps.get(Math.min(index, minTemps.size() - 1)));
@@ -81,6 +85,26 @@ public final class WeatherParser {
 
         return new WeatherForecast(date, code, describeWmoCode(code),
                 maxC, minC, rain, wind, exact);
+    }
+
+    /**
+     * Reads the first of {@code keys} that exists in {@code daily} as a list of numbers (the API
+     * sends {@code null} for missing values, which become 0). Older API versions used different
+     * key names, so a second name can be given as a fallback.
+     */
+    private static List<Double> numbers(JSONObject daily, String... keys) {
+        for (String key : keys) {
+            JSONArray array = daily.optJSONArray(key);
+            if (array == null || array.length() == 0) {
+                continue;
+            }
+            List<Double> out = new ArrayList<>(array.length());
+            for (int i = 0; i < array.length(); i++) {
+                out.add(array.optDouble(i, 0.0));
+            }
+            return out;
+        }
+        return new ArrayList<>();
     }
 
     /** Maps standard WMO weather interpretation codes (WW) to clear English descriptions. */
@@ -131,92 +155,5 @@ public final class WeatherParser {
 
     private static int clampPercent(int value) {
         return Math.max(0, Math.min(100, value));
-    }
-
-    private static String extractObject(String json, String key) {
-        int keyPos = json.indexOf(key);
-        if (keyPos < 0) {
-            return null;
-        }
-        int braceStart = json.indexOf('{', keyPos + key.length());
-        if (braceStart < 0) {
-            return null;
-        }
-        int depth = 0;
-        boolean inString = false;
-        for (int i = braceStart; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (c == '"' && (i == 0 || json.charAt(i - 1) != '\\')) {
-                inString = !inString;
-            } else if (!inString) {
-                if (c == '{') {
-                    depth++;
-                } else if (c == '}') {
-                    depth--;
-                    if (depth == 0) {
-                        return json.substring(braceStart, i + 1);
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    private static String extractArrayContent(String block, String key) {
-        int keyPos = block.indexOf(key);
-        if (keyPos < 0) {
-            return null;
-        }
-        int colon = block.indexOf(':', keyPos + key.length());
-        if (colon < 0) {
-            return null;
-        }
-        int start = block.indexOf('[', colon + 1);
-        if (start < 0) {
-            return null;
-        }
-        int end = block.indexOf(']', start + 1);
-        if (end < 0) {
-            return null;
-        }
-        return block.substring(start + 1, end);
-    }
-
-    private static List<String> extractStringArray(String block, String key) {
-        String content = extractArrayContent(block, key);
-        if (content == null || content.trim().isEmpty()) {
-            return new ArrayList<>();
-        }
-        List<String> out = new ArrayList<>();
-        String[] parts = content.split(",");
-        for (String p : parts) {
-            String cleaned = p.trim();
-            if (cleaned.startsWith("\"") && cleaned.endsWith("\"") && cleaned.length() >= 2) {
-                out.add(cleaned.substring(1, cleaned.length() - 1));
-            }
-        }
-        return out;
-    }
-
-    private static List<Double> extractNumberArray(String block, String key) {
-        String content = extractArrayContent(block, key);
-        if (content == null || content.trim().isEmpty()) {
-            return new ArrayList<>();
-        }
-        List<Double> out = new ArrayList<>();
-        String[] parts = content.split(",");
-        for (String p : parts) {
-            String cleaned = p.trim();
-            if (cleaned.isEmpty() || "null".equalsIgnoreCase(cleaned)) {
-                out.add(0.0);
-                continue;
-            }
-            try {
-                out.add(Double.parseDouble(cleaned));
-            } catch (NumberFormatException ignored) {
-                return new ArrayList<>();
-            }
-        }
-        return out;
     }
 }

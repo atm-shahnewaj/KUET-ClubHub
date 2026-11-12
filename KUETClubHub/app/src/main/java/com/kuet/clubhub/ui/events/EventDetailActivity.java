@@ -34,6 +34,7 @@ import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
 import com.kuet.clubhub.model.WeatherForecast;
+import com.kuet.clubhub.notify.ToastCenter;
 import com.kuet.clubhub.provider.ScheduleClashChecker;
 import com.kuet.clubhub.ui.certificate.CertificateActivity;
 import com.kuet.clubhub.ui.clubs.ClubDetailActivity;
@@ -66,6 +67,10 @@ public class EventDetailActivity extends BaseActivity {
     private ScheduleClashChecker.Clash clash;
     private boolean clashChecking = false;
 
+    /** Tracks whether the event was still ongoing on the previous tick so we can toast on completion. */
+    private Boolean wasEndedPreviously = null;
+    private boolean promptedFeedbackAndCertThisVisit = false;
+
     /** Tracks which event date the weather forecast has already been requested for. */
     private String weatherRequestedIso = "";
 
@@ -89,6 +94,7 @@ public class EventDetailActivity extends BaseActivity {
     private final ActivityResultLauncher<Intent> scanLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == Activity.RESULT_OK) {
+                    ToastCenter.show(this, R.string.msg_checked_in);
                     Snackbar.make(binding.getRoot(), R.string.msg_checked_in, Snackbar.LENGTH_LONG).show();
                 }
             });
@@ -229,7 +235,14 @@ public class EventDetailActivity extends BaseActivity {
                     new EventRepository.MyRegistrationListener() {
                         @Override
                         public void onChanged(MyRegistration reg) {
+                            String prevStatus = myReg == null ? null : myReg.getStatus();
+                            String nextStatus = reg == null ? null : reg.getStatus();
                             myReg = reg;
+                            if (MyRegistration.WAITLISTED.equals(prevStatus)
+                                    && MyRegistration.REGISTERED.equals(nextStatus)) {
+                                String title = current != null ? current.getTitle() : reg.getTitle();
+                                ToastCenter.waitlistPromoted(EventDetailActivity.this, title, eventId);
+                            }
                             render();
                         }
 
@@ -361,8 +374,25 @@ public class EventDetailActivity extends BaseActivity {
         if (binding == null || current == null) {
             return;
         }
+        long now = System.currentTimeMillis();
+        boolean endedNow = current.hasEnded(now);
         binding.tvCountdown.setText(CountdownText.formatDetail(
-                current.getStartTime(), current.getEndTime(), System.currentTimeMillis()));
+                current.getStartTime(), current.getEndTime(), now));
+
+        if (wasEndedPreviously != null && !wasEndedPreviously && endedNow) {
+            wasEndedPreviously = true;
+            renderRegistration(current);
+            if (myCheckIn != null) {
+                ToastCenter.certificateReady(this, current.getTitle(), eventId);
+                if (myFeedback == null) {
+                    countdownHandler.postDelayed(() ->
+                            ToastCenter.feedbackPrompt(EventDetailActivity.this,
+                                    current.getTitle(), eventId), 2_500L);
+                }
+            }
+        } else {
+            wasEndedPreviously = endedNow;
+        }
     }
 
     private void renderWeather(Event e) {
@@ -497,6 +527,10 @@ public class EventDetailActivity extends BaseActivity {
                             : getString(R.string.action_edit_rating, myFeedback.getRating()));
                     if (e.hasEnded(now)) {
                         binding.btnCertificate.setVisibility(View.VISIBLE);
+                        if (!promptedFeedbackAndCertThisVisit && myFeedback == null) {
+                            promptedFeedbackAndCertThisVisit = true;
+                            ToastCenter.feedbackPrompt(this, e.getTitle(), eventId);
+                        }
                     }
                 } else if (!e.hasEnded(now)) {
                     binding.btnShowPass.setVisibility(View.VISIBLE);
@@ -568,11 +602,14 @@ public class EventDetailActivity extends BaseActivity {
         }
         int result = CalendarHelper.addOrOpenCalendar(this, current);
         if (result == CalendarHelper.RESULT_INSERTED_DIRECTLY) {
+            ToastCenter.showShort(this, R.string.msg_calendar_added);
             Snackbar.make(binding.getRoot(), R.string.msg_calendar_added, Snackbar.LENGTH_LONG).show();
         } else if (result == CalendarHelper.RESULT_ALREADY_EXISTS) {
+            ToastCenter.showShort(this, R.string.msg_calendar_already_added);
             Snackbar.make(binding.getRoot(), R.string.msg_calendar_already_added,
                     Snackbar.LENGTH_LONG).show();
         } else if (result == CalendarHelper.RESULT_NO_CALENDAR_APP) {
+            ToastCenter.showShort(this, R.string.msg_no_calendar_app);
             Snackbar.make(binding.getRoot(), R.string.msg_no_calendar_app, Snackbar.LENGTH_LONG).show();
         }
     }
@@ -650,12 +687,14 @@ public class EventDetailActivity extends BaseActivity {
                     FeedbackRepository.save(eventId, profile, rating, comment, new Callback<Void>() {
                         @Override
                         public void onSuccess(Void result) {
+                            ToastCenter.showShort(EventDetailActivity.this, R.string.msg_feedback_saved);
                             Snackbar.make(binding.getRoot(), R.string.msg_feedback_saved,
                                     Snackbar.LENGTH_LONG).show();
                         }
 
                         @Override
                         public void onError(String message) {
+                            ToastCenter.show(EventDetailActivity.this, message);
                             Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
                         }
                     });
@@ -669,15 +708,27 @@ public class EventDetailActivity extends BaseActivity {
             @Override
             public void onSuccess(String status) {
                 setBusy(false);
-                Snackbar.make(binding.getRoot(),
-                        MyRegistration.WAITLISTED.equals(status)
-                                ? R.string.msg_waitlisted : R.string.msg_registered,
-                        Snackbar.LENGTH_LONG).show();
+                boolean waitlisted = MyRegistration.WAITLISTED.equals(status);
+                String title = current == null ? "this event" : current.getTitle();
+                String passCode = myReg != null ? myReg.getPassCode() : null;
+                ToastCenter.registrationConfirmed(EventDetailActivity.this, title, passCode, waitlisted);
+                Snackbar spacer = Snackbar.make(binding.getRoot(),
+                        waitlisted ? R.string.msg_waitlisted : R.string.msg_registered,
+                        Snackbar.LENGTH_LONG);
+                if (!waitlisted) {
+                    spacer.setAction(R.string.action_show_pass, v -> {
+                        Intent intent = new Intent(EventDetailActivity.this, EventPassActivity.class);
+                        intent.putExtra(EventPassActivity.EXTRA_EVENT_ID, eventId);
+                        startActivity(intent);
+                    });
+                }
+                spacer.show();
             }
 
             @Override
             public void onError(String message) {
                 setBusy(false);
+                ToastCenter.show(EventDetailActivity.this, message);
                 Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
             }
         });
@@ -701,12 +752,17 @@ public class EventDetailActivity extends BaseActivity {
             @Override
             public void onSuccess(String result) {
                 setBusy(false);
+                String title = current != null && current.getTitle() != null
+                        ? current.getTitle() : "the event";
+                ToastCenter.showShort(EventDetailActivity.this,
+                        "Registration cancelled for " + title + ".");
                 Snackbar.make(binding.getRoot(), R.string.msg_cancelled, Snackbar.LENGTH_LONG).show();
             }
 
             @Override
             public void onError(String message) {
                 setBusy(false);
+                ToastCenter.show(EventDetailActivity.this, message);
                 Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
             }
         });

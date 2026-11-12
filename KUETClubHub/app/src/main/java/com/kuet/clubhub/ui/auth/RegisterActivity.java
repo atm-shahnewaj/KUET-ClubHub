@@ -82,7 +82,7 @@ public class RegisterActivity extends BaseActivity {
                 binding.etEmail.setText(user.getEmail());
                 binding.tilEmail.setEnabled(false);
             }
-            binding.btnRegister.setText("Complete Gmail Profile");
+            binding.btnRegister.setText("Complete Profile");
             binding.btnHaveAccount.setText("Switch Google Account");
         } else {
             googleMode = false;

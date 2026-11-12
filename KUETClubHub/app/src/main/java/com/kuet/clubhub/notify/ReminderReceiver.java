@@ -12,7 +12,7 @@ import com.kuet.clubhub.util.TimeFormats;
 
 import java.util.Date;
 
-/** Woken by a reminder alarm; posts a notification that opens the event. */
+/** Woken by a reminder alarm; posts a notification and toast that opens the event. */
 public class ReminderReceiver extends BroadcastReceiver {
 
     @Override
@@ -44,6 +44,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                     app.getString(R.string.test_reminder_title),
                     app.getString(R.string.test_reminder_text),
                     NotificationHelper.alertsPendingIntent(app, 2001));
+            ToastCenter.show(app, app.getString(R.string.test_reminder_title) + ": "
+                    + app.getString(R.string.test_reminder_text));
             return;
         }
         if (eventId == null || title == null || !NotificationPrefs.remindersEnabled(app)) {
@@ -52,6 +54,11 @@ public class ReminderReceiver extends BroadcastReceiver {
         // The person may have cancelled since the alarm was set.
         int stillRegistered = AppDatabase.getInstance(app).scheduleDao().countRegistered(eventId);
         if (stillRegistered == 0) {
+            return;
+        }
+
+        if (ReminderScheduler.KIND_START.equals(kind)) {
+            ToastCenter.eventStartingOrCheckInOpen(app, title, false, false, eventId);
             return;
         }
 
@@ -67,5 +74,6 @@ public class ReminderReceiver extends BroadcastReceiver {
         int id = (eventId + kind).hashCode();
         NotificationHelper.show(app, NotificationHelper.CHANNEL_REMINDERS, id, heading, text,
                 NotificationHelper.eventPendingIntent(app, eventId, id));
+        ToastCenter.show(app, heading + " — " + text);
     }
 }

@@ -29,6 +29,7 @@ import com.kuet.clubhub.model.Poll;
 import com.kuet.clubhub.model.Question;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.notify.ToastCenter;
 import com.kuet.clubhub.util.QuestionRanker;
 
 import java.util.ArrayList;
@@ -109,7 +110,19 @@ public class LiveActivity extends BaseActivity {
 
             @Override
             public void onToggleOpen(Poll poll) {
-                LiveRepository.setPollOpen(eventId, poll.getId(), !poll.acceptingVotes(), quiet());
+                final boolean reopen = !poll.acceptingVotes();
+                LiveRepository.setPollOpen(eventId, poll.getId(), reopen, new Callback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        ToastCenter.showShort(LiveActivity.this,
+                                reopen ? "Poll reopened for voting." : "Poll voting closed.");
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        showError(message);
+                    }
+                });
             }
 
             @Override
@@ -125,7 +138,18 @@ public class LiveActivity extends BaseActivity {
 
             @Override
             public void onAnswered(Question question, boolean answered) {
-                LiveRepository.setAnswered(eventId, question.getId(), answered, quiet());
+                LiveRepository.setAnswered(eventId, question.getId(), answered, new Callback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        ToastCenter.showShort(LiveActivity.this,
+                                answered ? "Question marked as answered." : "Question returned to queue.");
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        showError(message);
+                    }
+                });
             }
 
             @Override
@@ -364,6 +388,7 @@ public class LiveActivity extends BaseActivity {
                                 new Callback<Void>() {
                                     @Override
                                     public void onSuccess(Void result) {
+                                        ToastCenter.showShort(LiveActivity.this, R.string.msg_vote_saved);
                                         Snackbar.make(binding.getRoot(), R.string.msg_vote_saved,
                                                 Snackbar.LENGTH_SHORT).show();
                                     }
@@ -422,6 +447,9 @@ public class LiveActivity extends BaseActivity {
             LiveRepository.createPoll(eventId, profile, question, options, new Callback<String>() {
                 @Override
                 public void onSuccess(String pollId) {
+                    String title = event == null ? "this event" : event.getTitle();
+                    ToastCenter.livePollOrQaStarted(LiveActivity.this, title, question,
+                            true, eventId, pollId);
                     Snackbar.make(binding.getRoot(), R.string.msg_poll_launched, Snackbar.LENGTH_SHORT).show();
                 }
 
@@ -457,6 +485,7 @@ public class LiveActivity extends BaseActivity {
             LiveRepository.ask(eventId, profile, text, anonymous, new Callback<String>() {
                 @Override
                 public void onSuccess(String questionId) {
+                    ToastCenter.showShort(LiveActivity.this, R.string.msg_question_posted);
                     Snackbar.make(binding.getRoot(), R.string.msg_question_posted, Snackbar.LENGTH_SHORT).show();
                 }
 
@@ -497,6 +526,7 @@ public class LiveActivity extends BaseActivity {
     }
 
     private void showError(String message) {
+        ToastCenter.show(this, message);
         if (binding != null) {
             Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
         }

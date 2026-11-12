@@ -669,11 +669,18 @@
                             android:textAppearance="?attr/textAppearanceBodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant" />
 
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switch_mute_club_chat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="Mute chat &amp; mention notifications for this club" />
+
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_open_chat_room"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
+                            android:layout_marginTop="12dp"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
                             android:maxLines="1"

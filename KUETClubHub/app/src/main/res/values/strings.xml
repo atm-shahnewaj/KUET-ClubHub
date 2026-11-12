@@ -30,7 +30,7 @@
     <string name="label_role">I am a…</string>
     <string name="role_student">Student</string>
     <string name="role_organizer">Club organizer</string>
-    <string name="action_register">Create Gmail Account</string>
+    <string name="action_register">Create Account</string>
     <string name="action_have_account">Already have an account? Sign in</string>
     <string name="title_pick_year">Select your year</string>
 
@@ -246,6 +246,16 @@
     <string name="channel_watcher">Background watcher</string>
     <string name="channel_watcher_desc">Shown while ClubHub watches for events that match your interests</string>
     <string name="watcher_title">ClubHub is watching for events you may like</string>
+    <string name="watcher_state_connecting">Connecting to campus events…</string>
+    <string name="watcher_state_idle">Live · no new matching events yet</string>
+    <string name="watcher_state_offline">Offline · reconnecting automatically</string>
+    <plurals name="watcher_state_matches">
+        <item quantity="one">%1$d new matching event · latest: %2$s</item>
+        <item quantity="other">%1$d new matching events · latest: %2$s</item>
+    </plurals>
+    <string name="watcher_last_checked">Last checked %1$s</string>
+    <string name="watcher_action_alerts">View alerts</string>
+    <string name="watcher_action_off">Turn off</string>
     <string name="watcher_text">Turn off interest alerts in Profile to stop this.</string>
 
     <string name="reminder_day_title">Tomorrow: %1$s</string>

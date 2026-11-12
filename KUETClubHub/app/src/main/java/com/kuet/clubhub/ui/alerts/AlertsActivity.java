@@ -12,12 +12,13 @@ import com.kuet.clubhub.base.BaseActivity;
 import com.kuet.clubhub.data.local.AlertDao;
 import com.kuet.clubhub.data.local.AppDatabase;
 import com.kuet.clubhub.databinding.ActivityAlertsBinding;
+import com.kuet.clubhub.notify.ToastCenter;
 import com.kuet.clubhub.ui.events.EventDetailActivity;
 import com.kuet.clubhub.util.Io;
 
 import java.util.ArrayList;
 
-/** Alerts about new events that match the student's interests. */
+/** Alerts about new events that match the student's interests and real-time campus notifications. */
 public class AlertsActivity extends BaseActivity {
 
     private ActivityAlertsBinding binding;
@@ -38,16 +39,32 @@ public class AlertsActivity extends BaseActivity {
         binding.toolbar.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == R.id.action_clear_alerts) {
                 Io.DISK.execute(dao::dismissAll);
+                ToastCenter.showShort(this, "All alerts cleared.");
                 return true;
             }
             return false;
         });
 
         AlertAdapter adapter = new AlertAdapter(alert -> {
-            if (!alert.eventId.startsWith("test-")) {
+            String id = alert.eventId == null ? "" : alert.eventId;
+            if (!id.isEmpty() && !id.startsWith("test-")
+                    && !id.startsWith("waitlist_promoted_")
+                    && !id.startsWith("club_decision_")
+                    && !id.startsWith("join_req_")
+                    && !id.startsWith("event_change_")
+                    && !id.startsWith("notice_")
+                    && !id.startsWith("team_invite_")
+                    && !id.startsWith("team_update_")
+                    && !id.startsWith("cert_ready_")
+                    && !id.startsWith("poll_")
+                    && !id.startsWith("qa_")
+                    && !id.startsWith("feedback_prompt_")
+                    && !id.startsWith("checkin_open_")) {
                 Intent intent = new Intent(this, EventDetailActivity.class);
-                intent.putExtra(EventDetailActivity.EXTRA_EVENT_ID, alert.eventId);
+                intent.putExtra(EventDetailActivity.EXTRA_EVENT_ID, id);
                 startActivity(intent);
+            } else {
+                ToastCenter.showShort(this, alert.message);
             }
         });
         binding.recycler.setLayoutManager(new LinearLayoutManager(this));

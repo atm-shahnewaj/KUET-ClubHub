@@ -1,5 +1,8 @@
 package com.kuet.clubhub.ui.home;
 
+import com.kuet.clubhub.ui.common.ListUiStateViewModel;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.lifecycle.ViewModelProvider;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -59,11 +62,14 @@ public class HomeFragment extends Fragment {
             "All", "Technical", "Cyber", "Debate", "Cultural", "Sports"
     };
 
+    private static final int HOME_CHIP_ID_BASE = 2000;
+
     private FragmentHomeBinding binding;
     private final List<Event> allEvents = new ArrayList<>();
     private final List<Club> allClubs = new ArrayList<>();
     private String query = "";
     private String selectedCategory = "All";
+    private ListUiStateViewModel ui;
 
     private HomeEventCardAdapter eventAdapter;
     private ClubAdapter clubAdapter;
@@ -81,6 +87,11 @@ public class HomeFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        ui = new ViewModelProvider(this).get(ListUiStateViewModel.class);
+        if (ui.category != null) {
+            selectedCategory = ui.category;
+        }
 
         binding.cardAvatar.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), EditProfileActivity.class)));
@@ -117,7 +128,8 @@ public class HomeFragment extends Fragment {
             intent.putExtra(ClubDetailActivity.EXTRA_CLUB_ID, club.getId());
             startActivity(intent);
         });
-        binding.recyclerFeaturedClubs.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.recyclerFeaturedClubs.setLayoutManager(new GridLayoutManager(requireContext(),
+                getResources().getInteger(R.integer.list_columns)));
         binding.recyclerFeaturedClubs.setAdapter(clubAdapter);
 
         binding.btnSeeAllEvents.setOnClickListener(v -> {
@@ -200,16 +212,17 @@ public class HomeFragment extends Fragment {
             String cat = HOME_CATEGORIES[i];
             Chip chip = (Chip) getLayoutInflater()
                     .inflate(R.layout.item_filter_chip, binding.chipGroupCategory, false);
-            chip.setId(View.generateViewId());
+            chip.setId(HOME_CHIP_ID_BASE + i);
             chip.setText(cat);
             chip.setTag(cat);
-            chip.setChecked(i == 0);
+            chip.setChecked(cat.equals(selectedCategory));
             binding.chipGroupCategory.addView(chip);
         }
         binding.chipGroupCategory.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.isEmpty()) return;
             Chip c = group.findViewById(checkedIds.get(0));
             selectedCategory = c == null ? "All" : (String) c.getTag();
+            ui.category = selectedCategory;
             render();
         });
     }

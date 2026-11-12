@@ -55,6 +55,25 @@ public class WeatherParserTest {
     }
 
     @Test
+    public void parseDailyJsonReturnsNullOnInvalidJson() {
+        assertNull(WeatherParser.parseDailyJson("{not json", "2026-10-28"));
+        assertNull(WeatherParser.parseDailyJson("[1,2,3]", "2026-10-28"));
+    }
+
+    @Test
+    public void parseDailyJsonTreatsNullValuesAsZero() {
+        String json = "{\"daily\":{\"time\":[\"2026-10-28\"],\"weather_code\":[null],"
+                + "\"temperature_2m_max\":[30.0],\"temperature_2m_min\":[22.0],"
+                + "\"precipitation_probability_max\":[null],\"wind_speed_10m_max\":[null]}}";
+        WeatherForecast f = WeatherParser.parseDailyJson(json, "2026-10-28");
+        assertNotNull(f);
+        assertEquals(0, f.getWeatherCode());
+        assertEquals(0, f.getRainChancePercent());
+        assertEquals(0, f.getWindMaxKmh());
+        assertEquals(30, f.getTempMaxC());
+    }
+
+    @Test
     public void describeWmoCodeCoversCommonConditions() {
         assertEquals("Clear sky", WeatherParser.describeWmoCode(0));
         assertEquals("Partly cloudy", WeatherParser.describeWmoCode(2));

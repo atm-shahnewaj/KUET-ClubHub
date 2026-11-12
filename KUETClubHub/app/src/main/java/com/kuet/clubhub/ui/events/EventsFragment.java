@@ -1,5 +1,6 @@
 package com.kuet.clubhub.ui.events;
 
+import androidx.recyclerview.widget.GridLayoutManager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -86,7 +87,8 @@ public class EventsFragment extends Fragment {
         }
 
         adapter = new EventAdapter(true, this::openEvent);
-        binding.recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.recycler.setLayoutManager(new GridLayoutManager(requireContext(),
+                getResources().getInteger(R.integer.list_columns)));
         binding.recycler.setAdapter(adapter);
 
         boolean canCreate = profile != null && profile.getRoleEnum() != Role.STUDENT;

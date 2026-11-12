@@ -11,8 +11,8 @@
         android:layout_height="match_parent" />
 
     <View
-        android:layout_width="260dp"
-        android:layout_height="260dp"
+        android:layout_width="@dimen/scan_frame_size"
+        android:layout_height="@dimen/scan_frame_size"
         android:layout_gravity="center"
         android:background="@drawable/bg_scan_frame" />
 

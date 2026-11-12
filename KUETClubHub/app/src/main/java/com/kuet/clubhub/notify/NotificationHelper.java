@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.text.format.DateFormat;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -19,7 +20,11 @@ import androidx.core.content.ContextCompat;
 import com.kuet.clubhub.R;
 import com.kuet.clubhub.ui.MainActivity;
 import com.kuet.clubhub.ui.alerts.AlertsActivity;
+import com.kuet.clubhub.ui.clubs.ClubChatActivity;
+import com.kuet.clubhub.ui.clubs.ClubDetailActivity;
 import com.kuet.clubhub.ui.events.EventDetailActivity;
+
+import java.util.Date;
 
 /** Notification channels and the notifications the app posts. */
 public final class NotificationHelper {
@@ -29,6 +34,8 @@ public final class NotificationHelper {
     public static final String CHANNEL_WATCHER = "watcher";
 
     public static final int WATCHER_NOTIFICATION_ID = 1001;
+    private static final int WATCHER_ACTION_ALERTS_CODE = 1003;
+    private static final int WATCHER_ACTION_OFF_CODE = 1004;
 
     private NotificationHelper() {
     }
@@ -75,6 +82,38 @@ public final class NotificationHelper {
                         PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
+    /** Opens the club detail page, with the main screen underneath. */
+    public static PendingIntent clubPendingIntent(Context context, String clubId, int requestCode) {
+        Intent detail = new Intent(context, ClubDetailActivity.class);
+        detail.putExtra(ClubDetailActivity.EXTRA_CLUB_ID, clubId);
+        return TaskStackBuilder.create(context)
+                .addNextIntent(new Intent(context, MainActivity.class))
+                .addNextIntent(detail)
+                .getPendingIntent(requestCode,
+                        PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    /** Opens the club group chat screen, with the main screen and club page underneath. */
+    public static PendingIntent clubChatPendingIntent(Context context, @Nullable String clubId,
+                                                      @Nullable String clubName, int requestCode) {
+        if (clubId == null || clubId.isEmpty()) {
+            return alertsPendingIntent(context, requestCode);
+        }
+        Intent clubDetail = new Intent(context, ClubDetailActivity.class);
+        clubDetail.putExtra(ClubDetailActivity.EXTRA_CLUB_ID, clubId);
+        Intent chat = new Intent(context, ClubChatActivity.class);
+        chat.putExtra(ClubChatActivity.EXTRA_CLUB_ID, clubId);
+        if (clubName != null) {
+            chat.putExtra(ClubChatActivity.EXTRA_CLUB_NAME, clubName);
+        }
+        return TaskStackBuilder.create(context)
+                .addNextIntent(new Intent(context, MainActivity.class))
+                .addNextIntent(clubDetail)
+                .addNextIntent(chat)
+                .getPendingIntent(requestCode,
+                        PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
     public static PendingIntent alertsPendingIntent(Context context, int requestCode) {
         return TaskStackBuilder.create(context)
                 .addNextIntent(new Intent(context, MainActivity.class))
@@ -103,19 +142,62 @@ public final class NotificationHelper {
         NotificationManagerCompat.from(context).notify(id, builder.build());
     }
 
-    /** The always-visible notification of the foreground service that watches for matching events. */
+    /**
+     * The always-visible notification of the foreground service that watches for matching events.
+     * It shows live status (connecting / live / offline, matches found so far, last check time),
+     * a running "watching for" timer, and two actions. It is re-posted by {@link #updateWatcher}.
+     */
     public static Notification buildWatcherNotification(Context context) {
+        WatcherStatus.Snapshot s = WatcherStatus.snapshot();
+        String checked = s.lastCheckedAt == 0 ? null
+                : DateFormat.getTimeFormat(context).format(new Date(s.lastCheckedAt));
+
+        String text;
+        if (s.state == WatcherStatus.State.OFFLINE) {
+            text = context.getString(R.string.watcher_state_offline);
+        } else if (s.state == WatcherStatus.State.CONNECTING) {
+            text = context.getString(R.string.watcher_state_connecting);
+        } else if (s.matches > 0) {
+            text = context.getResources().getQuantityString(R.plurals.watcher_state_matches,
+                    s.matches, s.matches, s.lastTitle == null ? "" : s.lastTitle);
+        } else {
+            text = context.getString(R.string.watcher_state_idle);
+        }
+        String detail = checked == null ? text
+                : text + "\n" + context.getString(R.string.watcher_last_checked, checked);
+
         return new NotificationCompat.Builder(context, CHANNEL_WATCHER)
                 .setSmallIcon(R.drawable.ic_stat_clubhub)
                 .setColor(ContextCompat.getColor(context, R.color.kuet_green))
                 .setContentTitle(context.getString(R.string.watcher_title))
-                .setContentText(context.getString(R.string.watcher_text))
+                .setContentText(text)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(detail))
+                .setWhen(s.startedAt)
+                .setShowWhen(true)
+                .setUsesChronometer(true)
                 .setOngoing(true)
+                .setOnlyAlertOnce(true)
                 .setSilent(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setContentIntent(PendingIntent.getActivity(context, 0,
                         new Intent(context, MainActivity.class),
                         PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT))
+                .addAction(0, context.getString(R.string.watcher_action_alerts),
+                        alertsPendingIntent(context, WATCHER_ACTION_ALERTS_CODE))
+                .addAction(0, context.getString(R.string.watcher_action_off),
+                        PendingIntent.getService(context, WATCHER_ACTION_OFF_CODE,
+                                new Intent(context, InterestAlertService.class)
+                                        .setAction(InterestAlertService.ACTION_TURN_OFF),
+                                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT))
                 .build();
+    }
+
+    /** Re-posts the foreground notification with the current {@link WatcherStatus}. */
+    public static void updateWatcher(Context context) {
+        if (!canNotify(context)) {
+            return;
+        }
+        NotificationManagerCompat.from(context)
+                .notify(WATCHER_NOTIFICATION_ID, buildWatcherNotification(context));
     }
 }

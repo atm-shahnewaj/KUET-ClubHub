@@ -1,5 +1,6 @@
 package com.kuet.clubhub.ui.events;
 
+import androidx.recyclerview.widget.GridLayoutManager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -54,7 +55,8 @@ public class MyEventsFragment extends Fragment {
             intent.putExtra(EventDetailActivity.EXTRA_EVENT_ID, event.getId());
             startActivity(intent);
         });
-        binding.recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.recycler.setLayoutManager(new GridLayoutManager(requireContext(),
+                getResources().getInteger(R.integer.list_columns)));
         binding.recycler.setAdapter(adapter);
         binding.progress.setVisibility(View.VISIBLE);
     }

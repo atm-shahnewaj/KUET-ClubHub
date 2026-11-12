@@ -78,7 +78,9 @@ public final class AlertProcessor {
         NotificationHelper.show(app, NotificationHelper.CHANNEL_ALERTS, id,
                 app.getString(R.string.alert_title, event.getTitle()), message,
                 NotificationHelper.eventPendingIntent(app, event.getId(), id));
+        ToastCenter.show(app, app.getString(R.string.alert_title, event.getTitle()) + " (" + tags + ")");
         announce(app, event.getTitle());
+        WatcherStatus.onAlert(app, event.getTitle());
     }
 
     /** Stores and shows a made-up alert, so the notification path can be tried without a 2nd phone. */
@@ -92,7 +94,9 @@ public final class AlertProcessor {
             NotificationHelper.show(app, NotificationHelper.CHANNEL_ALERTS, 2002,
                     app.getString(R.string.alert_title, title), message,
                     NotificationHelper.alertsPendingIntent(app, 2002));
+            ToastCenter.show(app, app.getString(R.string.alert_title, title));
             announce(app, title);
+            WatcherStatus.onAlert(app, title);
         });
     }
 

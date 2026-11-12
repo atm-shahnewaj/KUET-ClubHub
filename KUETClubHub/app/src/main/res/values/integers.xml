@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Columns used by the card lists (clubs, events, my events, featured clubs). -->
+    <integer name="list_columns">1</integer>
+</resources>

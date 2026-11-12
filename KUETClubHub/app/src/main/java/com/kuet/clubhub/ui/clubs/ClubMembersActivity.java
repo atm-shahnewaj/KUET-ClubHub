@@ -17,14 +17,17 @@ import com.kuet.clubhub.data.SessionManager;
 import com.kuet.clubhub.databinding.ActivityListBinding;
 import com.kuet.clubhub.model.ClubMember;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.notify.ToastCenter;
 import com.kuet.clubhub.ui.common.RowAdapter;
 import com.kuet.clubhub.util.Years;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /** Organizer screen: approve or reject membership applications, and see or remove members. */
 public class ClubMembersActivity extends BaseActivity implements RowAdapter.Listener {
@@ -36,8 +39,11 @@ public class ClubMembersActivity extends BaseActivity implements RowAdapter.List
     private RowAdapter adapter;
     private UserProfile profile;
     private String clubId;
+    private String clubName = "";
 
     private List<ClubMember> all = new ArrayList<>();
+    private final Set<String> seenPendingUids = new HashSet<>();
+    private boolean pendingBaselineSet = false;
     private boolean showPending = true;
     private boolean loaded = false;
     private ListenerRegistration registration;
@@ -56,10 +62,11 @@ public class ClubMembersActivity extends BaseActivity implements RowAdapter.List
             finish();
             return;
         }
-        String clubName = getIntent().getStringExtra(EXTRA_CLUB_NAME);
+        String cName = getIntent().getStringExtra(EXTRA_CLUB_NAME);
+        clubName = cName == null ? "" : cName;
         binding.toolbar.setTitle(R.string.title_membership);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
-        binding.tvTitle.setText(clubName == null ? "" : clubName);
+        binding.tvTitle.setText(clubName);
 
         adapter = new RowAdapter(this);
         binding.recycler.setLayoutManager(new LinearLayoutManager(this));
@@ -86,6 +93,22 @@ public class ClubMembersActivity extends BaseActivity implements RowAdapter.List
                 new MembershipRepository.MembersListener() {
                     @Override
                     public void onMembers(List<ClubMember> members) {
+                        if (!pendingBaselineSet) {
+                            pendingBaselineSet = true;
+                            for (ClubMember m : members) {
+                                if (m.getUid() != null && ClubMember.PENDING.equals(m.getStatus())) {
+                                    seenPendingUids.add(m.getUid());
+                                }
+                            }
+                        } else {
+                            for (ClubMember m : members) {
+                                if (m.getUid() != null && ClubMember.PENDING.equals(m.getStatus())
+                                        && seenPendingUids.add(m.getUid())) {
+                                    ToastCenter.newClubJoinRequest(ClubMembersActivity.this,
+                                            m.getName(), clubName, clubId, m.getUid());
+                                }
+                            }
+                        }
                         all = members;
                         loaded = true;
                         render();
@@ -173,7 +196,18 @@ public class ClubMembersActivity extends BaseActivity implements RowAdapter.List
                     .setMessage(getString(R.string.dialog_remove_member_message, m.getName()))
                     .setNegativeButton(R.string.action_cancel, null)
                     .setPositiveButton(R.string.action_remove, (d, w) ->
-                            MembershipRepository.remove(clubId, m.getUid(), true, quiet()))
+                            MembershipRepository.remove(clubId, m.getUid(), true, new Callback<Void>() {
+                                @Override
+                                public void onSuccess(Void result) {
+                                    ToastCenter.showShort(ClubMembersActivity.this,
+                                            m.getName() + " removed from club.");
+                                }
+
+                                @Override
+                                public void onError(String message) {
+                                    showError(message);
+                                }
+                            }))
                     .show();
         }
     }
@@ -188,10 +222,10 @@ public class ClubMembersActivity extends BaseActivity implements RowAdapter.List
                 new Callback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
-                        Snackbar.make(binding.getRoot(),
-                                getString(approve ? R.string.msg_member_approved
-                                        : R.string.msg_member_rejected, m.getName()),
-                                Snackbar.LENGTH_SHORT).show();
+                        String msg = getString(approve ? R.string.msg_member_approved
+                                : R.string.msg_member_rejected, m.getName());
+                        ToastCenter.showShort(ClubMembersActivity.this, msg);
+                        Snackbar.make(binding.getRoot(), msg, Snackbar.LENGTH_SHORT).show();
                     }
 
                     @Override
@@ -201,21 +235,8 @@ public class ClubMembersActivity extends BaseActivity implements RowAdapter.List
                 });
     }
 
-    private Callback<Void> quiet() {
-        return new Callback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                // The live list updates by itself.
-            }
-
-            @Override
-            public void onError(String message) {
-                showError(message);
-            }
-        };
-    }
-
     private void showError(String message) {
+        ToastCenter.show(this, message);
         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
     }
 

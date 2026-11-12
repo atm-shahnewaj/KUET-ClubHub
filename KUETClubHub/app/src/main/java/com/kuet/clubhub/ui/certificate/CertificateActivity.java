@@ -21,6 +21,7 @@ import com.kuet.clubhub.databinding.ActivityCertificateBinding;
 import com.kuet.clubhub.model.Certificate;
 import com.kuet.clubhub.model.Event;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.notify.ToastCenter;
 import com.kuet.clubhub.util.CertificateRenderer;
 import com.kuet.clubhub.util.Io;
 
@@ -127,6 +128,8 @@ public class CertificateActivity extends BaseActivity {
                     binding.tvCertId.setVisibility(View.VISIBLE);
                     binding.btnOpenPdf.setVisibility(View.VISIBLE);
                     binding.btnSharePdf.setVisibility(View.VISIBLE);
+                    ToastCenter.certificateReady(CertificateActivity.this,
+                            cert.getEventTitle(), eventId);
                 });
             } catch (Exception | OutOfMemoryError e) {
                 runOnUiThread(() -> {

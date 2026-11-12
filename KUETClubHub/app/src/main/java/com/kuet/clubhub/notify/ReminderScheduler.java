@@ -13,9 +13,9 @@ import com.kuet.clubhub.util.NotificationPrefs;
 import java.util.List;
 
 /**
- * Sets and cancels the reminder alarms (one day before and one hour before an event) that wake
- * {@link ReminderReceiver}. Alarms are "inexact while idle", so they can be a few minutes late in
- * Doze mode but need no special permission.
+ * Sets and cancels the reminder alarms (one day before, one hour before, and at event start time)
+ * that wake {@link ReminderReceiver}. Alarms are "inexact while idle", so they can be a few minutes
+ * late in Doze mode but need no special permission.
  */
 public final class ReminderScheduler {
 
@@ -28,6 +28,7 @@ public final class ReminderScheduler {
 
     public static final String KIND_DAY = "day";
     public static final String KIND_HOUR = "hour";
+    public static final String KIND_START = "start";
     public static final String KIND_TEST = "test";
 
     private static final long HOUR = 60 * 60 * 1000L;
@@ -36,7 +37,7 @@ public final class ReminderScheduler {
     private ReminderScheduler() {
     }
 
-    /** Schedules (or cancels) both reminders for one stored event, depending on its status. */
+    /** Schedules (or cancels) reminders for one stored event, depending on its status. */
     public static void scheduleFor(Context context, ScheduledEventEntity e) {
         if (!MyRegistration.REGISTERED.equals(e.status)
                 || !NotificationPrefs.remindersEnabled(context)) {
@@ -45,6 +46,7 @@ public final class ReminderScheduler {
         }
         schedule(context, e, KIND_DAY, e.startMillis - DAY);
         schedule(context, e, KIND_HOUR, e.startMillis - HOUR);
+        schedule(context, e, KIND_START, e.startMillis);
     }
 
     /** Re-creates every alarm from the stored events (after boot, app update or a settings change). */
@@ -61,7 +63,7 @@ public final class ReminderScheduler {
         if (am == null) {
             return;
         }
-        for (String kind : new String[]{KIND_DAY, KIND_HOUR}) {
+        for (String kind : new String[]{KIND_DAY, KIND_HOUR, KIND_START}) {
             PendingIntent pi = PendingIntent.getBroadcast(context, requestCode(eventId, kind),
                     baseIntent(context), PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
             if (pi != null) {

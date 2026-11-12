@@ -98,8 +98,7 @@
             android:exported="false" />
         <activity
             android:name=".ui.scan.ScanActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
+            android:exported="false" />
         <activity
             android:name=".ui.alerts.AlertsActivity"
             android:exported="false" />

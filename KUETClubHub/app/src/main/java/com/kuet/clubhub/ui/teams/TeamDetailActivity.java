@@ -29,6 +29,7 @@ import com.kuet.clubhub.databinding.DialogTeamInviteBinding;
 import com.kuet.clubhub.model.Seeker;
 import com.kuet.clubhub.model.Team;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.notify.ToastCenter;
 import com.kuet.clubhub.ui.common.RowAdapter;
 import com.kuet.clubhub.util.Interests;
 import com.kuet.clubhub.util.QrCodeGenerator;
@@ -319,6 +320,7 @@ public class TeamDetailActivity extends BaseActivity implements RowAdapter.Liste
                 TeamRepository.joinOpenTeam(teamId, profile, new Callback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
+                        ToastCenter.show(TeamDetailActivity.this, R.string.msg_team_joined);
                         Snackbar.make(binding.getRoot(), R.string.msg_team_joined,
                                 Snackbar.LENGTH_LONG).show();
                     }
@@ -424,7 +426,18 @@ public class TeamDetailActivity extends BaseActivity implements RowAdapter.Liste
                     if (which == 0) {
                         TeamFormDialog.show(this, getLayoutInflater(), team,
                                 (name, skills, note, open) -> TeamRepository.updateTeam(teamId, name,
-                                        skills, note, open, quiet()));
+                                        skills, note, open, new Callback<Void>() {
+                                            @Override
+                                            public void onSuccess(Void result) {
+                                                ToastCenter.showShort(TeamDetailActivity.this,
+                                                        "Team details updated.");
+                                            }
+
+                                            @Override
+                                            public void onError(String message) {
+                                                showError(message);
+                                            }
+                                        }));
                     } else {
                         confirmDisband();
                     }
@@ -455,6 +468,7 @@ public class TeamDetailActivity extends BaseActivity implements RowAdapter.Liste
                         TeamRepository.leave(team, profile.getUid(), new Callback<Void>() {
                             @Override
                             public void onSuccess(Void result) {
+                                ToastCenter.showShort(TeamDetailActivity.this, "You left the team.");
                                 finish();
                             }
 
@@ -482,8 +496,9 @@ public class TeamDetailActivity extends BaseActivity implements RowAdapter.Liste
             TeamRepository.invite(team, s.getUid(), new Callback<Void>() {
                 @Override
                 public void onSuccess(Void result) {
-                    Snackbar.make(binding.getRoot(), getString(R.string.msg_invite_sent, s.getName()),
-                            Snackbar.LENGTH_SHORT).show();
+                    String msg = getString(R.string.msg_invite_sent, s.getName());
+                    ToastCenter.showShort(TeamDetailActivity.this, msg);
+                    Snackbar.make(binding.getRoot(), msg, Snackbar.LENGTH_SHORT).show();
                 }
 
                 @Override
@@ -493,12 +508,24 @@ public class TeamDetailActivity extends BaseActivity implements RowAdapter.Liste
             });
         } else if (row.tag instanceof String) {
             final String memberUid = (String) row.tag;
+            final String memberName = team.nameOf(memberUid);
             new MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.dialog_remove_member_title)
-                    .setMessage(getString(R.string.dialog_remove_member_message, team.nameOf(memberUid)))
+                    .setMessage(getString(R.string.dialog_remove_member_message, memberName))
                     .setNegativeButton(R.string.action_cancel, null)
                     .setPositiveButton(R.string.action_remove, (d, w) ->
-                            TeamRepository.removeMember(team, memberUid, quiet()))
+                            TeamRepository.removeMember(team, memberUid, new Callback<Void>() {
+                                @Override
+                                public void onSuccess(Void result) {
+                                    ToastCenter.showShort(TeamDetailActivity.this,
+                                            memberName + " removed from team.");
+                                }
+
+                                @Override
+                                public void onError(String message) {
+                                    showError(message);
+                                }
+                            }))
                     .show();
         }
     }
@@ -522,6 +549,7 @@ public class TeamDetailActivity extends BaseActivity implements RowAdapter.Liste
     }
 
     private void showError(String message) {
+        ToastCenter.show(this, message);
         if (binding != null) {
             Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
         }

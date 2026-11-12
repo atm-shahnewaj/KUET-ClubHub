@@ -4,7 +4,7 @@ This build completes the entire **Week 6** plan:
 1. **Live polls & Q&A board** (Proposal features 13 and 14)
 2. **Analytics charts, no-show tracking, and CSV participant export** (Proposal features 12, 33, 34)
 3. **Clone event** (Proposal feature 35)
-4. **Live event countdown, Add to phone calendar (`CalendarContract`), and Campus weather forecast (`HttpURLConnection` + JSON)** (Proposal features 17, 21, 39)
+4. **Live event countdown, Add to phone calendar (`CalendarContract`), and Campus weather forecast (`HttpURLConnection` + `org.json`)** (Proposal features 17, 21, 39)
 5. **Home screen widget (`AppWidgetProvider`) and App shortcuts** (Proposal features 17, 41, 42)
 
 ## Before you run it: publish the rules
@@ -55,4 +55,4 @@ This build completes the entire **Week 6** plan:
 ### 5. Unit tests (`app/src/test`)
 - `TeamMatcherTest` (Week 5)
 - `PollMathTest` and `QuestionRankerTest` (Week 6 Part 1)
-- `EventAnalyticsTest`, `CsvExporterTest`, `CountdownTextTest`, `WeatherParserTest`, and `WidgetEventPickerTest` (Week 6 Part 2 — all pure Java with no Android stub dependencies so `./gradlew test` runs cleanly).
+- `EventAnalyticsTest`, `CsvExporterTest`, `CountdownTextTest`, `WeatherParserTest`, and `WidgetEventPickerTest` (Week 6 Part 2 — plain JUnit so `./gradlew test` runs cleanly; `WeatherParser` uses `org.json`, supplied to the unit tests through the `org.json:json` test dependency).

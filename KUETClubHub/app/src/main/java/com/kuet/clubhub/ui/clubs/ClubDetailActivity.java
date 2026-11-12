@@ -37,11 +37,13 @@ import com.kuet.clubhub.model.Event;
 import com.kuet.clubhub.model.MyRegistration;
 import com.kuet.clubhub.model.Role;
 import com.kuet.clubhub.model.UserProfile;
+import com.kuet.clubhub.notify.ToastCenter;
 import com.kuet.clubhub.ui.common.RowAdapter;
 import com.kuet.clubhub.ui.events.EventAdapter;
 import com.kuet.clubhub.ui.events.EventDetailActivity;
 import com.kuet.clubhub.ui.events.EventEditActivity;
 import com.kuet.clubhub.util.ImageHelper;
+import com.kuet.clubhub.util.NotificationPrefs;
 import com.kuet.clubhub.util.TimeFormats;
 import com.kuet.clubhub.util.Years;
 
@@ -58,7 +60,7 @@ import java.util.Map;
  *   Join/Leave/Withdraw controls, Members-Only Group Chat launcher,
  *   and Organizer/Admin Quick Console
  * - Tab 1: Events (Upcoming & Past events hosted by this club)
- * - Tab 2: Chat (Members-only real-time group chat via Firebase Realtime Database)
+ * - Tab 2: Chat (Members-only real-time group chat via Firebase Realtime Database + per-club mute switch)
  * - Tab 3: Notices (Pinned announcements & updates posted by club organizers)
  * - Tab 4: About (Club description, Focus Highlights & Active Members Directory preview)
  */
@@ -92,6 +94,7 @@ public class ClubDetailActivity extends BaseActivity {
     private ClubMember myMembership;
     private boolean membershipLoaded = false;
     private boolean busy = false;
+    private boolean suppressMuteSwitchCallback = false;
 
     private int activeTab = TAB_EVENTS;
     private int eventFilter = EVENT_FILTER_ALL;
@@ -126,6 +129,19 @@ public class ClubDetailActivity extends BaseActivity {
         View.OnClickListener openChatClick = v -> onGroupChatClicked();
         binding.btnClubChat.setOnClickListener(openChatClick);
         binding.btnOpenChatRoom.setOnClickListener(openChatClick);
+
+        binding.switchMuteClubChat.setChecked(NotificationPrefs.isClubChatMuted(this, clubId));
+        binding.switchMuteClubChat.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (suppressMuteSwitchCallback) {
+                return;
+            }
+            NotificationPrefs.setClubChatMuted(this, clubId, isChecked);
+            String cName = currentClub != null && currentClub.getName() != null
+                    ? currentClub.getName() : "this club";
+            ToastCenter.showShort(this, isChecked
+                    ? "Muted chat & mention notifications for " + cName + "."
+                    : "Unmuted chat & mention notifications for " + cName + ".");
+        });
 
         setupTabsAndAdapters();
 
@@ -221,6 +237,10 @@ public class ClubDetailActivity extends BaseActivity {
         if (clubId == null || profile == null) {
             return;
         }
+        suppressMuteSwitchCallback = true;
+        binding.switchMuteClubChat.setChecked(NotificationPrefs.isClubChatMuted(this, clubId));
+        suppressMuteSwitchCallback = false;
+
         registration = repository.listenClub(clubId, new ClubRepository.ClubListener() {
             @Override
             public void onClub(Club club) {
@@ -251,8 +271,17 @@ public class ClubDetailActivity extends BaseActivity {
                     new MembershipRepository.MyMembershipListener() {
                         @Override
                         public void onChanged(@Nullable ClubMember member) {
+                            String prevStatus = myMembership == null ? null : myMembership.getStatus();
+                            String nextStatus = member == null ? null : member.getStatus();
                             myMembership = member;
                             membershipLoaded = true;
+                            if (ClubMember.PENDING.equals(prevStatus)
+                                    && (ClubMember.APPROVED.equals(nextStatus)
+                                        || ClubMember.REJECTED.equals(nextStatus))) {
+                                String cName = currentClub != null ? currentClub.getName() : "this club";
+                                ToastCenter.clubJoinDecision(ClubDetailActivity.this, cName,
+                                        ClubMember.APPROVED.equals(nextStatus), clubId);
+                            }
                             renderMembership();
                             renderChatAccessState();
                         }
@@ -332,6 +361,7 @@ public class ClubDetailActivity extends BaseActivity {
     private void renderChatAccessState() {
         if (binding == null) return;
         boolean allowed = canUseGroupChat();
+        binding.switchMuteClubChat.setVisibility(allowed ? View.VISIBLE : View.GONE);
         if (allowed) {
             binding.btnClubChat.setText("Open Club Group Chat");
             binding.tvChatCardTitle.setText("Club Group Chat (Unlocked)");
@@ -359,12 +389,14 @@ public class ClubDetailActivity extends BaseActivity {
             }
             startActivity(chat);
         } else if (myMembership != null && ClubMember.PENDING.equals(myMembership.getStatus())) {
+            ToastCenter.showShort(this, "Your application is pending organizer approval.");
             Snackbar.make(binding.getRoot(),
                     "Your club membership application is pending approval. Group chat is for approved members only.",
                     Snackbar.LENGTH_LONG).show();
         } else if (currentClub != null && currentClub.isApproved()) {
             askForMessageAndApply();
         } else {
+            ToastCenter.showShort(this, "Only approved club members can access the group chat.");
             Snackbar.make(binding.getRoot(),
                     "Only approved club members can access the group chat.",
                     Snackbar.LENGTH_LONG).show();
@@ -516,6 +548,7 @@ public class ClubDetailActivity extends BaseActivity {
 
     private void openCreateEventForClub() {
         if (currentClub != null && !currentClub.isApproved()) {
+            ToastCenter.showShort(this, R.string.msg_no_clubs_for_events);
             Snackbar.make(binding.getRoot(), R.string.msg_no_clubs_for_events, Snackbar.LENGTH_LONG).show();
             return;
         }
@@ -582,6 +615,9 @@ public class ClubDetailActivity extends BaseActivity {
                         clubNotices.addAll(list);
                         renderNotices();
                     });
+                    String cName = currentClub != null && currentClub.getName() != null
+                            ? currentClub.getName() : "Club";
+                    ToastCenter.newClubNotice(ClubDetailActivity.this, cName, title, pinned, null);
                     Snackbar.make(binding.getRoot(), "Announcement published to club bulletin.",
                             Snackbar.LENGTH_SHORT).show();
                 }
@@ -589,6 +625,7 @@ public class ClubDetailActivity extends BaseActivity {
                 @Override
                 public void onError(String message) {
                     if (!isDestroyed() && binding != null) {
+                        ToastCenter.show(ClubDetailActivity.this, message);
                         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
                     }
                 }
@@ -634,6 +671,7 @@ public class ClubDetailActivity extends BaseActivity {
                             new Callback<Void>() {
                                 @Override
                                 public void onSuccess(Void result) {
+                                    ToastCenter.showShort(ClubDetailActivity.this, "Notice deleted.");
                                     ClubNoticeRepository.listen(ClubDetailActivity.this, clubId, currentClub, list -> {
                                         clubNotices.clear();
                                         clubNotices.addAll(list);
@@ -754,6 +792,10 @@ public class ClubDetailActivity extends BaseActivity {
                         @Override
                         public void onSuccess(Void result) {
                             setBusy(false);
+                            String cName = currentClub != null && currentClub.getName() != null
+                                    ? currentClub.getName() : "the club";
+                            ToastCenter.show(ClubDetailActivity.this,
+                                    "Join request sent to " + cName + "! Organizers will review it.");
                             Snackbar.make(binding.getRoot(), R.string.msg_application_sent,
                                     Snackbar.LENGTH_LONG).show();
                         }
@@ -761,6 +803,7 @@ public class ClubDetailActivity extends BaseActivity {
                         @Override
                         public void onError(String message) {
                             setBusy(false);
+                            ToastCenter.show(ClubDetailActivity.this, message);
                             Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
                         }
                     });
@@ -784,11 +827,14 @@ public class ClubDetailActivity extends BaseActivity {
                                 @Override
                                 public void onSuccess(Void result) {
                                     setBusy(false);
+                                    ToastCenter.showShort(ClubDetailActivity.this,
+                                            member ? "You left the club." : "Join request withdrawn.");
                                 }
 
                                 @Override
                                 public void onError(String message) {
                                     setBusy(false);
+                                    ToastCenter.show(ClubDetailActivity.this, message);
                                     Snackbar.make(binding.getRoot(), message,
                                             Snackbar.LENGTH_LONG).show();
                                 }
@@ -809,6 +855,7 @@ public class ClubDetailActivity extends BaseActivity {
             @Override
             public void onSuccess(Void result) {
                 binding.btnApprove.setEnabled(true);
+                ToastCenter.show(ClubDetailActivity.this, R.string.msg_club_approved);
                 Snackbar.make(binding.getRoot(), R.string.msg_club_approved,
                         Snackbar.LENGTH_LONG).show();
             }
@@ -816,6 +863,7 @@ public class ClubDetailActivity extends BaseActivity {
             @Override
             public void onError(String message) {
                 binding.btnApprove.setEnabled(true);
+                ToastCenter.show(ClubDetailActivity.this, message);
                 Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
             }
         });

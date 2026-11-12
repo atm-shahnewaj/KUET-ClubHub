@@ -23,11 +23,13 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.kuet.clubhub.R;
+import com.kuet.clubhub.notify.RealtimeToastWatcher;
 import com.kuet.clubhub.util.ThemeManager;
 
 /**
  * Shared base for every Activity. It logs all lifecycle callbacks to Logcat
- * (filter by the tag "ClubHubLifecycle") and handles edge-to-edge window insets.
+ * (filter by the tag "ClubHubLifecycle"), handles edge-to-edge window insets,
+ * and keeps the real-time event/club toast watcher active while the app is open.
  */
 public abstract class BaseActivity extends AppCompatActivity {
 
@@ -98,6 +100,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         ContextCompat.registerReceiver(this, airplaneReceiver,
                 new IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED),
                 ContextCompat.RECEIVER_EXPORTED);
+        RealtimeToastWatcher.getInstance(this).onActivityStarted(this);
         logLifecycle("onStart");
     }
 
@@ -116,6 +119,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         logLifecycle("onStop");
+        RealtimeToastWatcher.getInstance(this).onActivityStopped();
         try {
             unregisterReceiver(airplaneReceiver);
         } catch (IllegalArgumentException ignored) {

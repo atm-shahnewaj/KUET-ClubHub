@@ -20,6 +20,7 @@ import com.kuet.clubhub.data.EventRepository;
 import com.kuet.clubhub.databinding.ActivityEventCheckinBinding;
 import com.kuet.clubhub.model.CheckIn;
 import com.kuet.clubhub.model.Event;
+import com.kuet.clubhub.notify.ToastCenter;
 import com.kuet.clubhub.ui.scan.ScanActivity;
 import com.kuet.clubhub.util.QrCodeGenerator;
 import com.kuet.clubhub.util.QrPayload;
@@ -40,10 +41,12 @@ public class EventCheckInActivity extends BaseActivity {
 
     private ActivityEventCheckinBinding binding;
     private String eventId;
+    private String eventTitle = "";
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private boolean running = false;
     private boolean publishing = false;
+    private boolean announcedCheckInOpen = false;
     private long shownAt = 0;          // SystemClock.elapsedRealtime() when the current QR appeared
     private int registered = 0;
     private int checkedIn = 0;
@@ -85,14 +88,15 @@ public class EventCheckInActivity extends BaseActivity {
             return;
         }
         String title = getIntent().getStringExtra(EXTRA_EVENT_TITLE);
-        binding.tvEventTitle.setText(title == null ? "" : title);
+        eventTitle = title == null ? "" : title;
+        binding.tvEventTitle.setText(eventTitle);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
         binding.btnScanPasses.setOnClickListener(v -> {
             Intent intent = new Intent(this, ScanActivity.class);
             intent.putExtra(ScanActivity.EXTRA_MODE, ScanActivity.MODE_ORGANIZER_SCAN);
             intent.putExtra(ScanActivity.EXTRA_EVENT_ID, eventId);
-            intent.putExtra(ScanActivity.EXTRA_EVENT_TITLE, title);
+            intent.putExtra(ScanActivity.EXTRA_EVENT_TITLE, eventTitle);
             startActivity(intent);
         });
 
@@ -112,6 +116,10 @@ public class EventCheckInActivity extends BaseActivity {
                     @Override
                     public void onEvent(Event event) {
                         registered = (int) event.getRegisteredCount();
+                        if (event.getTitle() != null && !event.getTitle().isEmpty()) {
+                            eventTitle = event.getTitle();
+                            binding.tvEventTitle.setText(eventTitle);
+                        }
                         updateCounter();
                     }
 
@@ -129,7 +137,12 @@ public class EventCheckInActivity extends BaseActivity {
                 new CheckInRepository.CheckInsListener() {
                     @Override
                     public void onChanged(List<CheckIn> list) {
+                        int prev = checkedIn;
                         checkedIn = list.size();
+                        if (prev > 0 && checkedIn > prev) {
+                            ToastCenter.showShort(EventCheckInActivity.this,
+                                    "Attendee checked in (" + checkedIn + "/" + registered + ")");
+                        }
                         updateCounter();
                     }
 
@@ -179,6 +192,11 @@ public class EventCheckInActivity extends BaseActivity {
                 binding.progress.setVisibility(View.GONE);
                 binding.tvError.setVisibility(View.GONE);
                 shownAt = SystemClock.elapsedRealtime();
+                if (!announcedCheckInOpen) {
+                    announcedCheckInOpen = true;
+                    ToastCenter.eventStartingOrCheckInOpen(EventCheckInActivity.this,
+                            eventTitle, true, true, eventId);
+                }
             }
 
             @Override

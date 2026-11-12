@@ -1,5 +1,8 @@
 package com.kuet.clubhub.ui.clubs;
 
+import com.kuet.clubhub.ui.common.ListUiStateViewModel;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.lifecycle.ViewModelProvider;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -58,6 +61,7 @@ public class ClubListFragment extends Fragment {
     private ClubRepository repository;
     private UserProfile profile;
     private int mode;
+    private ListUiStateViewModel ui;
 
     private final List<Club> allClubs = new ArrayList<>();
     private final List<Club> cachedDirectoryClubs = new ArrayList<>();
@@ -71,6 +75,12 @@ public class ClubListFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mode = requireArguments().getInt(ARG_MODE, MODE_ALL);
+        // Restore the scope and category the person had open before a rotation.
+        ui = new ViewModelProvider(this).get(ListUiStateViewModel.class);
+        if (ui.mode != ListUiStateViewModel.UNSET) {
+            mode = ui.mode;
+        }
+        category = ui.category;
     }
 
     @Nullable
@@ -89,7 +99,8 @@ public class ClubListFragment extends Fragment {
         profile = new SessionManager(requireContext()).getProfile();
 
         adapter = new ClubAdapter(this::openClub);
-        binding.recycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.recycler.setLayoutManager(new GridLayoutManager(requireContext(),
+                getResources().getInteger(R.integer.list_columns)));
         binding.recycler.setAdapter(adapter);
 
         boolean canCreate = profile != null && profile.getRoleEnum() != Role.STUDENT
@@ -128,6 +139,7 @@ public class ClubListFragment extends Fragment {
                 if (!isChecked) return;
                 mode = checkedId == R.id.btn_scope_all ? MODE_ALL
                         : (profile.getRoleEnum() == Role.ADMIN ? MODE_PENDING : MODE_MINE);
+                ui.mode = mode;
                 updateModeVisibility();
                 if (registration != null) {
                     registration.remove();
@@ -254,9 +266,10 @@ public class ClubListFragment extends Fragment {
             }
         });
 
-        addChip(getString(R.string.chip_all), null, 0, true);
+        addChip(getString(R.string.chip_all), null, 0, category == null);
         for (int i = 0; i < Categories.ALL.length; i++) {
-            addChip(Categories.ALL[i], Categories.ALL[i], i + 1, false);
+            addChip(Categories.ALL[i], Categories.ALL[i], i + 1,
+                    Categories.ALL[i].equals(category));
         }
         binding.chipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.isEmpty()) {
@@ -264,6 +277,7 @@ public class ClubListFragment extends Fragment {
             }
             Chip chip = group.findViewById(checkedIds.get(0));
             category = chip == null ? null : (String) chip.getTag();
+            ui.category = category;
             render();
         });
     }

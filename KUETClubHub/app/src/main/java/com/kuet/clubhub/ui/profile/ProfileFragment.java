@@ -25,6 +25,7 @@ import com.kuet.clubhub.notify.AlertController;
 import com.kuet.clubhub.notify.AlertProcessor;
 import com.kuet.clubhub.notify.NotificationHelper;
 import com.kuet.clubhub.notify.ReminderScheduler;
+import com.kuet.clubhub.notify.ToastCenter;
 import com.kuet.clubhub.ui.auth.LoginActivity;
 import com.kuet.clubhub.ui.certificate.VerifyCertificateActivity;
 import com.kuet.clubhub.util.Io;
@@ -61,6 +62,7 @@ public class ProfileFragment extends Fragment {
         setupThemeToggle();
 
         binding.btnLogout.setOnClickListener(v -> {
+            ToastCenter.showShort(requireContext(), "Signed out of KUET ClubHub.");
             UserRepository.logout(requireContext());
             Intent intent = new Intent(requireContext(), LoginActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -122,6 +124,9 @@ public class ProfileFragment extends Fragment {
 
         binding.switchReminders.setOnCheckedChangeListener((button, checked) -> {
             NotificationPrefs.setRemindersEnabled(requireContext(), checked);
+            ToastCenter.showShort(requireContext(), checked
+                    ? "Event reminders enabled."
+                    : "Event reminders turned off.");
             // Sets the alarms again, or cancels them all when reminders are off.
             final android.content.Context app = requireContext().getApplicationContext();
             Io.DISK.execute(() -> ReminderScheduler.rescheduleAll(app));
@@ -132,11 +137,15 @@ public class ProfileFragment extends Fragment {
             if (checked) {
                 NotificationPrefs.resetBaseline(requireContext());
             }
+            ToastCenter.showShort(requireContext(), checked
+                    ? "Interest alerts enabled."
+                    : "Interest alerts turned off.");
             AlertController.refresh(requireContext());
         });
 
         binding.btnTestReminder.setOnClickListener(v -> {
             ReminderScheduler.scheduleTest(requireContext(), 10_000);
+            ToastCenter.showShort(requireContext(), R.string.msg_test_reminder_scheduled);
             Snackbar.make(binding.getRoot(), R.string.msg_test_reminder_scheduled,
                     Snackbar.LENGTH_LONG).show();
         });
@@ -151,6 +160,7 @@ public class ProfileFragment extends Fragment {
             try {
                 startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
             } catch (ActivityNotFoundException e) {
+                ToastCenter.show(requireContext(), R.string.msg_no_battery_settings);
                 Snackbar.make(binding.getRoot(), R.string.msg_no_battery_settings,
                         Snackbar.LENGTH_LONG).show();
             }

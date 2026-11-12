@@ -20,6 +20,7 @@ import android.view.View;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
@@ -69,6 +70,8 @@ public class ScanActivity extends BaseActivity {
     public static final String MODE_VERIFY_CERT = "cert";
     /** Result extra of MODE_VERIFY_CERT. */
     public static final String EXTRA_CERT_ID = "cert_id";
+
+    private static final String STATE_SCANNED_OK = "scanned_ok";
 
     private static final int SUCCESS = 0;
     private static final int WARNING = 1;
@@ -149,6 +152,9 @@ public class ScanActivity extends BaseActivity {
         binding.toolbar.setNavigationOnClickListener(v -> finish());
         binding.tvInstruction.setText(instructionRes);
         binding.tvCounter.setVisibility(organizer ? View.VISIBLE : View.GONE);
+        if (savedInstanceState != null) {
+            scannedOk = savedInstanceState.getInt(STATE_SCANNED_OK, 0);
+        }
         updateCounter();
 
         scanner = BarcodeScanning.getClient(new BarcodeScannerOptions.Builder()
@@ -351,6 +357,12 @@ public class ScanActivity extends BaseActivity {
                                 ORGANIZER_RESULT_MS * 2, false);
                     }
                 });
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(STATE_SCANNED_OK, scannedOk);
     }
 
     private void updateCounter() {

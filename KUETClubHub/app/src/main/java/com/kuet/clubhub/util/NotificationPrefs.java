@@ -3,7 +3,10 @@ package com.kuet.clubhub.util;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-/** Notification settings chosen by the person, plus the "only events created after this" baseline. */
+/**
+ * Notification settings chosen by the person, plus the "only events created after this" baseline
+ * and per-club chat notification mute switches.
+ */
 public final class NotificationPrefs {
 
     private static final String PREFS = "clubhub_notifications";
@@ -11,6 +14,7 @@ public final class NotificationPrefs {
     private static final String K_ALERTS = "alerts_enabled";
     private static final String K_ASKED = "asked_permission";
     private static final String K_BASELINE = "alert_baseline";
+    private static final String K_CLUB_CHAT_MUTED_PREFIX = "club_chat_muted_";
 
     private NotificationPrefs() {
     }
@@ -41,6 +45,21 @@ public final class NotificationPrefs {
 
     public static void setAskedPermission(Context c) {
         prefs(c).edit().putBoolean(K_ASKED, true).apply();
+    }
+
+    /** True when the user has muted chat/mention notifications and toasts for a specific club. */
+    public static boolean isClubChatMuted(Context c, String clubId) {
+        if (clubId == null || clubId.isEmpty()) {
+            return false;
+        }
+        return prefs(c).getBoolean(K_CLUB_CHAT_MUTED_PREFIX + clubId, false);
+    }
+
+    public static void setClubChatMuted(Context c, String clubId, boolean muted) {
+        if (clubId == null || clubId.isEmpty()) {
+            return;
+        }
+        prefs(c).edit().putBoolean(K_CLUB_CHAT_MUTED_PREFIX + clubId, muted).apply();
     }
 
     /** Events created before this moment never trigger an interest alert. */
